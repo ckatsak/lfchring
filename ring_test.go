@@ -179,14 +179,48 @@ func testParallelRW(t *testing.T, replicationFactor, numVnodes, numNodes, concur
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	_, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
 	}
+	checkVirtualNodes(t, r)
 
-	// TODO
+	// readers
+	start := time.Now()
+	done := make(chan struct{})
+	for goroutine := 0; goroutine < concurrency; goroutine++ {
+		go func(workerID int) {
+			size := 0
+			select {
+			case <-done:
+				return
+			case <-time.After(20 * time.Millisecond):
+				newSize := r.Size()
+				if newSize < size {
+					t.Errorf("[reader-%d] +%s: newSize < size", workerID, time.Since(start))
+				}
+				size = newSize
+			}
+		}(goroutine)
+	}
+
+	// writer
+	for i := numNodes; i < numNodes+100; i++ {
+		<-time.After(30 * time.Millisecond)
+		if _, err := r.Add(Node(fmt.Sprintf("node-%d", i))); err != nil {
+			t.Errorf("[writer] +%s: Add(\"node-%d\"): %v\n", time.Since(start), i, err)
+		} else {
+			checkVirtualNodes(t, r)
+		}
+	}
+	close(done)
 }
+func TestParallelRWTinyRing(t *testing.T)    { testParallelRW(t, 3, 4, 4, 10) }
+func TestParallelRWMedium1Ring(t *testing.T) { testParallelRW(t, 3, 64, 32, 10) }
+func TestParallelRWMedium2Ring(t *testing.T) { testParallelRW(t, 3, 128, 8, 10) }
+func TestParallelRWBigRing(t *testing.T)     { testParallelRW(t, 3, 128, 128, 10) }
+func TestParallelRWHugeRing(t *testing.T)    { testParallelRW(t, 3, 64, 256, 10) }
 
 // NOTE: The ring is not expected to be able to handle multiple writers.
 func testParallelAdd(t *testing.T, replicationFactor, numVnodes, numNodes, concurrency int) {
