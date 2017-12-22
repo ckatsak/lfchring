@@ -194,11 +194,11 @@ func (r *HashRing) HasVirtualNode(vnodeHash []byte) bool {
 }
 
 // TODO: Documentation
-func (r *HashRing) IterVirtualNodes() <-chan *VirtualNode {
-	return r.state.Load().(*hashRingState).iterVirtualNodes()
+func (r *HashRing) IterVirtualNodes(stop <-chan struct{}) <-chan *VirtualNode {
+	return r.state.Load().(*hashRingState).iterVirtualNodes(stop)
 }
 
 // TODO: Documentation
-func (r *HashRing) IterReversedVirtualNodes() <-chan *VirtualNode {
-	return r.state.Load().(*hashRingState).iterReversedVirtualNodes()
+func (r *HashRing) IterReversedVirtualNodes(stop <-chan struct{}) <-chan *VirtualNode {
+	return r.state.Load().(*hashRingState).iterReversedVirtualNodes(stop)
 }

@@ -410,24 +410,32 @@ func (s *hashRingState) hasVirtualNode(vnodeHash []byte) bool {
 }
 
 // TODO: Documentation
-func (s *hashRingState) iterVirtualNodes() <-chan *VirtualNode {
+func (s *hashRingState) iterVirtualNodes(stop <-chan struct{}) <-chan *VirtualNode {
 	retChan := make(chan *VirtualNode)
 	go func() {
 		defer close(retChan)
 		for _, vn := range s.virtualNodes {
-			retChan <- vn
+			select {
+			case <-stop:
+				return
+			case retChan <- vn:
+			}
 		}
 	}()
 	return retChan
 }
 
 // TODO: Documentation
-func (s *hashRingState) iterReversedVirtualNodes() <-chan *VirtualNode {
+func (s *hashRingState) iterReversedVirtualNodes(stop <-chan struct{}) <-chan *VirtualNode {
 	retChan := make(chan *VirtualNode)
 	go func() {
 		defer close(retChan)
 		for i := len(s.virtualNodes) - 1; i >= 0; i-- {
-			retChan <- s.virtualNodes[i]
+			select {
+			case <-stop:
+				return
+			case retChan <- s.virtualNodes[i]:
+			}
 		}
 	}()
 	return retChan
