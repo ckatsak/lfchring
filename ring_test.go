@@ -427,7 +427,7 @@ func TestIterStop(t *testing.T) {
 
 	stop := make(chan struct{})
 	defer close(stop)
-	vns := r.IterVirtualNodes(stop)
+	vns := r.VirtualNodes(stop)
 	for i := 0; i < r.Size(); i++ {
 		<-vns
 	}
@@ -445,7 +445,7 @@ func testIter(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	}
 
 	iterVNList := make([]*VirtualNode, 0)
-	for vn := range r.IterVirtualNodes(nil) {
+	for vn := range r.VirtualNodes(nil) {
 		iterVNList = append(iterVNList, vn)
 	}
 
@@ -480,7 +480,7 @@ func testParallelIter(t *testing.T, replicationFactor, numVnodes, numNodes, conc
 	for goroutine := 0; goroutine < concurrency; goroutine++ {
 		go func(workerID int) {
 			iterList := make([]*VirtualNode, 0)
-			for vn := range r.IterVirtualNodes(nil) {
+			for vn := range r.VirtualNodes(nil) {
 				iterList = append(iterList, vn)
 				time.Sleep(time.Duration(rand.Int31n(1<<10)) * time.Microsecond)
 			}
@@ -512,7 +512,7 @@ func TestIterReversedStop(t *testing.T) {
 
 	stop := make(chan struct{})
 	defer close(stop)
-	vns := r.IterReversedVirtualNodes(stop)
+	vns := r.VirtualNodesReversed(stop)
 	for i := 0; i < r.Size(); i++ {
 		<-vns
 	}
@@ -529,7 +529,7 @@ func testParallelIterReversed(t *testing.T, replicationFactor, numVnodes, numNod
 	}
 
 	vns := make([]*VirtualNode, 0)
-	for vn := range r.IterVirtualNodes(nil) {
+	for vn := range r.VirtualNodes(nil) {
 		vns = append(vns, vn)
 	}
 
@@ -541,7 +541,7 @@ func testParallelIterReversed(t *testing.T, replicationFactor, numVnodes, numNod
 			stop := make(chan struct{})
 			defer close(stop)
 			i := 0
-			for vn := range r.IterReversedVirtualNodes(stop) {
+			for vn := range r.VirtualNodesReversed(stop) {
 				if bytes.Compare(vn.name, vns[len(vns)-1-i].name) != 0 {
 					t.Errorf("[goroutine-%d] +%s: reversed[%d] should be %x instead of %x\n",
 						workerID, time.Since(start), i, vns[len(vns)-1-i].name, vn.name)
@@ -573,14 +573,14 @@ func testVirtualNodeForKey(t *testing.T, replicationFactor, numVnodes, numNodes 
 
 	stop := make(chan struct{})
 	defer close(stop)
-	for vn := range r.IterVirtualNodes(stop) {
+	for vn := range r.VirtualNodes(stop) {
 		if bytes.Compare(r.VirtualNodeForKey(vn.name).name, vn.name) != 0 {
 			t.Errorf("VirtualNodeForKey(%x) != %x\n", r.VirtualNodeForKey(vn.name), vn.name)
 		}
 	}
 
 	lastKey, _ := hex.DecodeString(strings.Repeat("f", 64))
-	firstVN := <-r.IterVirtualNodes(nil)
+	firstVN := <-r.VirtualNodes(nil)
 	if bytes.Compare(r.VirtualNodeForKey(lastKey).name, firstVN.name) != 0 {
 		t.Errorf("VirtualNodeForKey(%x) != %x\n", r.VirtualNodeForKey(lastKey), firstVN.name)
 	}
@@ -636,7 +636,7 @@ func TestPredSuccNodeSingleNodeRing(t *testing.T) {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
 	}
-	vn := <-r.IterVirtualNodes(nil)
+	vn := <-r.VirtualNodes(nil)
 	if _, err := r.PredecessorNode(vn.name); err != nil {
 		t.Logf("Received error %q, as expected.\n", err.Error())
 	} else {
@@ -661,7 +661,7 @@ func testPredecessor(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	}
 
 	vns := make([]*VirtualNode, 0)
-	for vn := range r.IterVirtualNodes(nil) {
+	for vn := range r.VirtualNodes(nil) {
 		vns = append(vns, vn)
 	}
 
@@ -697,7 +697,7 @@ func testSuccessor(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	}
 
 	vns := make([]*VirtualNode, 0)
-	for vn := range r.IterVirtualNodes(nil) {
+	for vn := range r.VirtualNodes(nil) {
 		vns = append(vns, vn)
 	}
 
@@ -736,7 +736,7 @@ func testPredecessorNode(t *testing.T, replicationFactor, numVnodes, numNodes in
 	// Check each virtual node in the current state:
 	stop := make(chan struct{})
 	defer close(stop)
-	for vn := range r.IterVirtualNodes(stop) {
+	for vn := range r.VirtualNodes(stop) {
 		// Get the reported predecessor...
 		reportedPredecessor, err := r.PredecessorNode(vn.name)
 		if err != nil {
@@ -808,7 +808,7 @@ func testSuccessorNode(t *testing.T, replicationFactor, numVnodes, numNodes int)
 
 	stop := make(chan struct{})
 	defer close(stop)
-	for vn := range r.IterVirtualNodes(stop) {
+	for vn := range r.VirtualNodes(stop) {
 		// Get the reported successor...
 		reportedSuccessor, err := r.SuccessorNode(vn.name)
 		if err != nil {
@@ -861,7 +861,7 @@ func testHasVirtualNode(t *testing.T, replicationFactor, numVnodes, numNodes int
 
 	stop := make(chan struct{})
 	defer close(stop)
-	for vn := range r.IterVirtualNodes(stop) {
+	for vn := range r.VirtualNodes(stop) {
 		// check the virtual node
 		if hasVN := r.HasVirtualNode(vn.name); !hasVN {
 			t.Errorf("virtual node %q exists, but reported otherwise\n", vn.String())

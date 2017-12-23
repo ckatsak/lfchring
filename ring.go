@@ -148,12 +148,22 @@ func (r *HashRing) Remove(nodes ...Node) ([]*VirtualNode, error) {
 	return removedVnodes, nil
 }
 
-// TODO: Documentation
+// NodesForKey returns a slice of Nodes (of length equal to the configured
+// replication factor) that are currently responsible for holding the given
+// key.
+//
+// Complexity: O( log(V*N) )
 func (r *HashRing) NodesForKey(key []byte) []Node {
 	return r.state.Load().(*hashRingState).nodesForKey(key)
 }
 
-// TODO: Documentation
+// NodesForObject returns a slice of Nodes (of length equal to the configured
+// replication factor) that are currently responsible for holding the object
+// that can be read from the given io.Reader (blake2b hashing is applied
+// first). It returns a non-nil error value in the case of a failure while
+// reading from the io.Reader.
+//
+// Complexity: O( Read ) + O( blake2b ) + O( log(V*N) )
 func (r *HashRing) NodesForObject(reader io.Reader) ([]Node, error) {
 	objectBytes, err := ioutil.ReadAll(reader)
 	if err != nil {
@@ -163,42 +173,72 @@ func (r *HashRing) NodesForObject(reader io.Reader) ([]Node, error) {
 	return r.NodesForKey(key[:]), nil
 }
 
-// TODO: Documentation
+// VirtualNodeForKey returns the virtual node in the ring that the given key
+// would be assigned to.
+//
+// Complexity: O( log(V*N) )
 func (r *HashRing) VirtualNodeForKey(key []byte) *VirtualNode {
 	return r.state.Load().(*hashRingState).virtualNodeForKey(key)
 }
 
-// TODO: Documentation
-func (r *HashRing) Predecessor(vnodeHash []byte) (*VirtualNode, error) {
-	return r.state.Load().(*hashRingState).predecessor(vnodeHash)
+// Predecessor returns the virtual node which is predecessor to the one that
+// the given key would be assigned to. It returns a non-nil error if the ring
+// is empty.
+//
+// Complexity: O( log(V*N) )
+func (r *HashRing) Predecessor(key []byte) (*VirtualNode, error) {
+	return r.state.Load().(*hashRingState).predecessor(key)
 }
 
-// TODO: Documentation
-func (r *HashRing) Successor(vnodeHash []byte) (*VirtualNode, error) {
-	return r.state.Load().(*hashRingState).successor(vnodeHash)
+// Successor returns the virtual node which is successor to the one that the
+// given key would be assigned to. It returns a non-nil error if the ring is
+// empty.
+//
+// Complexity: O( log(V*N) )
+func (r *HashRing) Successor(key []byte) (*VirtualNode, error) {
+	return r.state.Load().(*hashRingState).successor(key)
 }
 
-// TODO: Documentation
-func (r *HashRing) PredecessorNode(vnodeHash []byte) (*VirtualNode, error) {
-	return r.state.Load().(*hashRingState).predecessorNode(vnodeHash)
+// PredecessorNode returns the virtual node which is the first predecessor to
+// the one that the given key would be assigned to, but also belongs to a
+// different node than the latter. It returns a non-nil error if the ring
+// either is empty or consists of a single distinct node.
+//
+// Complexity: O( log(V*N)+V )
+func (r *HashRing) PredecessorNode(key []byte) (*VirtualNode, error) {
+	return r.state.Load().(*hashRingState).predecessorNode(key)
 }
 
-// TODO: Documentation
-func (r *HashRing) SuccessorNode(vnodeHash []byte) (*VirtualNode, error) {
-	return r.state.Load().(*hashRingState).successorNode(vnodeHash)
+// SuccessorNode returns the virtual node which is the first successor to the
+// one that the given key would be assigned to, but also belongs to a different
+// node than the latter. It returns a non-nil error if the ring either is empty
+// or consists of a single distinct node.
+//
+// Complexity: O( log(V*N)+V )
+func (r *HashRing) SuccessorNode(key []byte) (*VirtualNode, error) {
+	return r.state.Load().(*hashRingState).successorNode(key)
 }
 
-// TODO: Documentation
-func (r *HashRing) HasVirtualNode(vnodeHash []byte) bool {
-	return r.state.Load().(*hashRingState).hasVirtualNode(vnodeHash)
+// HasVirtualNode returns true if the given key corresponds to a virtual node
+// in the ring, or false otherwise.
+//
+// Complexity: O( log(V*N) )
+func (r *HashRing) HasVirtualNode(key []byte) bool {
+	return r.state.Load().(*hashRingState).hasVirtualNode(key)
 }
 
-// TODO: Documentation
-func (r *HashRing) IterVirtualNodes(stop <-chan struct{}) <-chan *VirtualNode {
+// VirtualNodes allows memory-efficient iteration over all virtual nodes in the
+// ring, by returning a channel for the caller to read the virtual nodes from.
+// The stop channel parameter should be used to avoid memory leaks when
+// quitting the iteration early.
+func (r *HashRing) VirtualNodes(stop <-chan struct{}) <-chan *VirtualNode {
 	return r.state.Load().(*hashRingState).iterVirtualNodes(stop)
 }
 
-// TODO: Documentation
-func (r *HashRing) IterReversedVirtualNodes(stop <-chan struct{}) <-chan *VirtualNode {
+// VirtualNodesReversed allows memory-efficient iteration over all virtual
+// nodes in the ring in reverse order, by returning a channel for the caller to
+// read the virtual nodes from. The stop channel parameter should be used to
+// avoid memory leaks when quitting the iteration early.
+func (r *HashRing) VirtualNodesReversed(stop <-chan struct{}) <-chan *VirtualNode {
 	return r.state.Load().(*hashRingState).iterReversedVirtualNodes(stop)
 }
