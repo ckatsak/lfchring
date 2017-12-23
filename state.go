@@ -72,7 +72,8 @@ func (s *hashRingState) derive() *hashRingState {
 			vnid: vnptr.vnid,
 		}
 	}
-	// Initialize a new map of replica owners *empty, to be filled later*. XXX
+	// Initialize a new map of replica owners, **EMPTY, to be filled by
+	// the caller** when needed. XXX
 	newROs := make(map[*VirtualNode][]Node)
 
 	return &hashRingState{

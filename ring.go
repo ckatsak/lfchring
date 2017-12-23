@@ -46,7 +46,7 @@ type VirtualNode struct {
 // String returns a representation of the VirtualNode in a print-friendly
 // format.
 func (vn *VirtualNode) String() string {
-	return fmt.Sprintf("%x (%s, %d)", vn.name, vn.node, vn.vnid)
+	return fmt.Sprintf("%x (%q, %d)", vn.name, vn.node, vn.vnid)
 }
 
 // HashRing is a lock-free consistent hashing ring entity, designed for
@@ -54,7 +54,11 @@ func (vn *VirtualNode) String() string {
 // also supports virtual ring nodes and performs replication-related
 // bookkeeping.
 type HashRing struct {
-	// TODO: Documentation
+	// state is an atomic.Value meant to hold values of type
+	// *hashRingState. Its use is what makes this implementation of the
+	// consistent hashing ring concurrent data structure lock-free. Note
+	// however that this only works for a single writer. For multiple
+	// writers, an additional mutex among them would be needed.
 	state atomic.Value
 }
 
@@ -88,11 +92,19 @@ func NewHashRing(replicationFactor, numVirtualNodes int, nodes ...Node) (*HashRi
 	return ring, nil
 }
 
+// Clone returns a new ring which is a deep copy of the original one.
+func (r *HashRing) Clone() *HashRing {
+	newState := r.state.Load().(*hashRingState).derive()
+	newState.fixReplicaOwners()
+	newRing := &HashRing{}
+	newRing.state.Store(newState)
+	return newRing
+}
+
 // Size returns the number of *distinct nodes* in the ring, in its current
 // state.
 func (r *HashRing) Size() int {
-	state := r.state.Load().(*hashRingState)
-	return state.size()
+	return r.state.Load().(*hashRingState).size()
 }
 
 // String returns the slice of virtual nodes of the current state of the ring,
@@ -101,7 +113,7 @@ func (r *HashRing) String() string {
 	state := r.state.Load().(*hashRingState)
 	ret := ""
 	for i, vn := range state.virtualNodes {
-		ret = fmt.Sprintf("\n%s%d.  %s  -->  %v\n", ret, i, vn.String(), state.replicaOwners[vn])
+		ret = fmt.Sprintf("%s%d.  %s  -->  %q\n", ret, i, vn.String(), state.replicaOwners[vn])
 	}
 	return ret
 }

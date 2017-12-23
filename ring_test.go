@@ -132,6 +132,152 @@ func TestNewBigRing(t *testing.T)      { testNewRing(t, 4, 128, 128) }
 func TestNewHugeRing(t *testing.T)     { testNewRing(t, 4, 256, 512) }
 func TestNewGiganticRing(t *testing.T) { testNewRing(t, 4, 512, 2048) }
 
+func testClone(t *testing.T, replicationFactor, virtualNodeCount, numNodes int) {
+	/*virtualNodeCount := 4
+	oldRing, err := NewHashRing(2, virtualNodeCount, "node-0", "node-1")
+	if err != nil {
+		t.Errorf("NewHashRing(): %v\n", err)
+		t.FailNow()
+	}*/
+	nodes := make([]Node, numNodes)
+	for i := 0; i < numNodes; i++ {
+		nodes[i] = Node(fmt.Sprintf("node-%d", i))
+	}
+	oldRing, err := NewHashRing(replicationFactor, virtualNodeCount, nodes...)
+	if err != nil {
+		t.Errorf("NewHashRing(): %v\n", err)
+		t.FailNow()
+	}
+	checkVirtualNodes(t, oldRing)
+
+	newRing := oldRing.Clone()
+	checkVirtualNodes(t, newRing)
+
+	// check size
+	if oldRing.Size() != newRing.Size() {
+		t.Errorf("oldRing.Size() == %d != %d == newRing.Size()", oldRing.Size(), newRing.Size())
+		t.FailNow()
+	} else {
+		t.Log("Sizes OK.")
+	}
+
+	// check virtual nodes
+	oldVNs := oldRing.VirtualNodes(nil)
+	newVNs := newRing.VirtualNodes(nil)
+	for i := 0; i < oldRing.Size()*virtualNodeCount; i++ {
+		oldNext := <-oldVNs
+		newNext := <-newVNs
+
+		if bytes.Compare(oldNext.name, newNext.name) != 0 {
+			t.Errorf("%#v != %#v", oldNext, newNext)
+			t.FailNow()
+		}
+
+		oldNodes := oldRing.NodesForKey(oldNext.name)
+		newNodes := newRing.NodesForKey(newNext.name)
+		for i, oldNode := range oldNodes {
+			newNode := newNodes[i]
+			if newNode != oldNode {
+				t.Errorf("oldNodes[%d] == %s != %s == newNodes[%d]", i, oldNode, newNode, i)
+				t.FailNow()
+			}
+		}
+	}
+	// Make sure channels are drained.
+	if oldNext := <-oldVNs; oldNext != nil {
+		t.Errorf("Something is wrong with the iteration channel.")
+		t.FailNow()
+	}
+	if newNext := <-newVNs; newNext != nil {
+		t.Errorf("New ring also has this: %#v", newNext)
+		t.FailNow()
+	}
+	t.Log("Virtual nodes OK.")
+}
+func TestCloneTinyRing(t *testing.T)     { testClone(t, 3, 4, 2) }
+func TestCloneMedium1Ring(t *testing.T)  { testClone(t, 3, 64, 32) }
+func TestCloneMedium2Ring(t *testing.T)  { testClone(t, 3, 128, 8) }
+func TestCloneBigRing(t *testing.T)      { testClone(t, 4, 128, 128) }
+func TestCloneHugeRing(t *testing.T)     { testClone(t, 3, 256, 512) }
+func TestCloneGiganticRing(t *testing.T) { testClone(t, 3, 256, 1024) }
+
+/*
+//FIXME: reflect.DeepEqual() is not helpful in our case, because replicaOwners
+//maps are not deeply equal because of the XXX below. See godoc for more
+//information.
+func TestCloneDeepEqual(t *testing.T) {
+	r, err := NewHashRing(2, 4, "node-0", "node-1")
+	if err != nil {
+		t.Errorf("NewHashRing(): %v\n", err)
+		t.FailNow()
+	}
+
+	r2 := r.Clone()
+	if !reflect.DeepEqual(r, r2) {
+		t.Errorf("*HashRing.Clone() malfunction.")
+		t.Log("state reflect.DeepEqual():", reflect.DeepEqual(r.state, r2.state))
+		t.Log("state.Load().(*hashRingState) reflect.DeepEqual():",
+			reflect.DeepEqual(r.state.Load().(*hashRingState), r2.state.Load().(*hashRingState)))
+		t.Log("state.Load().(*hashRingState).numVirtualNodes reflect.DeepEqual():",
+			reflect.DeepEqual(
+				r.state.Load().(*hashRingState).numVirtualNodes,
+				r2.state.Load().(*hashRingState).numVirtualNodes,
+			),
+		)
+		t.Log("state.Load().(*hashRingState).replicationFactor reflect.DeepEqual():",
+			reflect.DeepEqual(
+				r.state.Load().(*hashRingState).replicationFactor,
+				r2.state.Load().(*hashRingState).replicationFactor,
+			),
+		)
+		t.Log("state.Load().(*hashRingState).virtualNodes reflect.DeepEqual():",
+			reflect.DeepEqual(
+				r.state.Load().(*hashRingState).virtualNodes,
+				r2.state.Load().(*hashRingState).virtualNodes,
+			),
+		)
+		t.Log("state.Load().(*hashRingState).replicaOwners reflect.DeepEqual():",
+			reflect.DeepEqual(
+				r.state.Load().(*hashRingState).replicaOwners,
+				r2.state.Load().(*hashRingState).replicaOwners,
+			),
+		)
+		rFirst := <-r.VirtualNodes(nil)
+		r2First := <-r2.VirtualNodes(nil)
+		t.Log("state.Load().(*hashRingState).replicaOwners[first] reflect.DeepEqual():",
+			reflect.DeepEqual(
+				r.state.Load().(*hashRingState).replicaOwners[rFirst],
+				r2.state.Load().(*hashRingState).replicaOwners[r2First],
+			),
+		)
+		t.Log("state.Load().(*hashRingState).replicaOwners key [first] reflect.DeepEqual():",
+			reflect.DeepEqual(
+				rFirst,
+				r2First,
+			),
+		)
+		t.Log("rFirst == r2First :", rFirst == r2First) // XXX
+		for k, v := range r.state.Load().(*hashRingState).replicaOwners {
+			if v2, exists2 := r2.state.Load().(*hashRingState).replicaOwners[k]; !exists2 {
+				t.Errorf("Key {%v} not present in r2!\n\n", k)
+			} else if !reflect.DeepEqual(v, v2) {
+				t.Errorf("This is not equal:\nKey: {%#v} -->\nv1: {%#v}\nv2: {%#v}\n\n", k, v, v2)
+			}
+		}
+
+		t.Logf("%#v", r)
+		t.Logf("%#v", r2)
+		t.Logf("%#v", r.state.Load().(*hashRingState).replicaOwners)
+		t.Logf("%#v", r2.state.Load().(*hashRingState).replicaOwners)
+
+		//t.Log("r:\n", r)
+		t.Log("r2:\n", r2)
+		//r.Add("node-2")
+		//t.Log("r (later):\n", r)
+	}
+}
+*/
+
 func TestAddExistingNode(t *testing.T) {
 	r, err := NewHashRing(2, 4, "node-0", "node-1")
 	if err != nil {
