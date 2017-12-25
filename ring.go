@@ -25,6 +25,7 @@
 package lfhashring
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -108,14 +109,16 @@ func (r *HashRing) Size() int {
 }
 
 // String returns the slice of virtual nodes of the current state of the ring,
-// along with their replica owners, in a print-friendly format.
+// along with their replica owners, as a "print-friendly" string.
 func (r *HashRing) String() string {
 	state := r.state.Load().(*hashRingState)
-	ret := ""
+	ret := bytes.Buffer{}
 	for i, vn := range state.virtualNodes {
-		ret = fmt.Sprintf("%s%d.  %s  -->  %q\n", ret, i, vn.String(), state.replicaOwners[vn])
+		if _, err := ret.WriteString(fmt.Sprintf("%d.  %s  =>  %q\n", i, vn, state.replicaOwners[vn])); err != nil {
+			return "Ring too large to be represented in a string."
+		}
 	}
-	return ret
+	return ret.String()
 }
 
 // Add is a variadic method to add an arbitrary number of nodes in the ring

@@ -132,13 +132,28 @@ func TestNewBigRing(t *testing.T)      { testNewRing(t, 4, 128, 128) }
 func TestNewHugeRing(t *testing.T)     { testNewRing(t, 4, 256, 512) }
 func TestNewGiganticRing(t *testing.T) { testNewRing(t, 4, 512, 2048) }
 
-func testClone(t *testing.T, replicationFactor, virtualNodeCount, numNodes int) {
-	/*virtualNodeCount := 4
-	oldRing, err := NewHashRing(2, virtualNodeCount, "node-0", "node-1")
+var garbageStr string
+
+func TestStringGiganticRing(t *testing.T) {
+	replicationFactor := 4
+	numVnodes := 512
+	numNodes := 1024
+
+	nodes := make([]Node, numNodes)
+	for i := 0; i < numNodes; i++ {
+		nodes[i] = Node(fmt.Sprintf("node-%d", i))
+	}
+	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
-	}*/
+	}
+
+	garbageStr = r.String()
+	t.Log("Size of ring's representation:", len(garbageStr), "bytes.")
+}
+
+func testClone(t *testing.T, replicationFactor, virtualNodeCount, numNodes int) {
 	nodes := make([]Node, numNodes)
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
@@ -1052,8 +1067,26 @@ func benchmarkNewHashRing(b *testing.B, replicationFactor, numVnodes, numNodes i
 	}
 	return r
 }
-func BenchmarkNewMedium1Ring(b *testing.B)   { _ = benchmarkNewHashRing(b, 3, 64, 32) }
-func BenchmarkNewMedium2Ring(b *testing.B)   { _ = benchmarkNewHashRing(b, 3, 128, 8) }
-func BenchmarkNewxBigRing(b *testing.B)      { _ = benchmarkNewHashRing(b, 3, 128, 128) }
-func BenchmarkNewxHugeRing(b *testing.B)     { _ = benchmarkNewHashRing(b, 3, 256, 512) }
-func BenchmarkNewxGiganticRing(b *testing.B) { _ = benchmarkNewHashRing(b, 3, 512, 1024) }
+func BenchmarkNewMedium1Ring(b *testing.B)  { _ = benchmarkNewHashRing(b, 3, 64, 32) }
+func BenchmarkNewMedium2Ring(b *testing.B)  { _ = benchmarkNewHashRing(b, 3, 128, 8) }
+func BenchmarkNewBigRing(b *testing.B)      { _ = benchmarkNewHashRing(b, 3, 128, 128) }
+func BenchmarkNewHugeRing(b *testing.B)     { _ = benchmarkNewHashRing(b, 3, 256, 512) }
+func BenchmarkNewGiganticRing(b *testing.B) { _ = benchmarkNewHashRing(b, 3, 512, 1024) }
+
+func benchmarkString(b *testing.B, replicationFactor, numVnodes, numNodes int) {
+	nodes := make([]Node, numNodes)
+	for i := 0; i < numNodes; i++ {
+		nodes[i] = Node(fmt.Sprintf("node-%d", i))
+	}
+	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	if err != nil {
+		panic(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		garbageStr = r.String()
+	}
+}
+func BenchmarkStringMedium1Ring(b *testing.B) { benchmarkString(b, 3, 64, 32) }
+func BenchmarkStringMedium2Ring(b *testing.B) { benchmarkString(b, 3, 128, 8) }
+func BenchmarkStringBigRing(b *testing.B)     { benchmarkString(b, 3, 128, 128) }
