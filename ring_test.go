@@ -71,8 +71,8 @@ func checkVirtualNodes(t *testing.T, r *HashRing) {
 	for _, vnCount := range numVNIDs {
 		numVnodes += vnCount
 	}
-	if numVnodes != r.Size()*int(state.numVirtualNodes) {
-		t.Errorf("Counted %d virtual nodes; expected %d.\n", numVnodes, r.Size()*int(state.numVirtualNodes))
+	if numVnodes != r.Size()*int(state.virtualNodeCount) {
+		t.Errorf("Counted %d virtual nodes; expected %d.\n", numVnodes, r.Size()*int(state.virtualNodeCount))
 	}
 	t.Log("Ring state's slice of virtual nodes looks OK.")
 }
@@ -452,12 +452,12 @@ func TestRemoveNontExistentNode(t *testing.T) {
 	checkVirtualNodes(t, r)
 }
 
-func testRemoveFromRing(t *testing.T, replicationFactor, numVirtualNodes, numNodes int) {
+func testRemoveFromRing(t *testing.T, replicationFactor, virtualNodeCount, numNodes int) {
 	nodes := make([]Node, numNodes)
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVirtualNodes, nodes...)
+	r, err := NewHashRing(replicationFactor, virtualNodeCount, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()

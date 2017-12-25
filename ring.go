@@ -69,16 +69,16 @@ type HashRing struct {
 // An arbitrary number of nodes may optionally be added to the new ring during
 // initialization through parameter `nodes` (hence, NewHashRing is a variadic
 // function).
-func NewHashRing(replicationFactor, numVirtualNodes int, nodes ...Node) (*HashRing, error) {
+func NewHashRing(replicationFactor, virtualNodeCount int, nodes ...Node) (*HashRing, error) {
 	if replicationFactor < 1 || replicationFactor > (1<<8)-1 {
 		return nil, fmt.Errorf("replicationFactor value %d not in (0, %d)", replicationFactor, 1<<8)
 	}
-	if numVirtualNodes < 1 || numVirtualNodes > (1<<16)-1 {
-		return nil, fmt.Errorf("numVirtualNodes value %d not in (0, %d)", numVirtualNodes, 1<<16)
+	if virtualNodeCount < 1 || virtualNodeCount > (1<<16)-1 {
+		return nil, fmt.Errorf("virtualNodeCount value %d not in (0, %d)", virtualNodeCount, 1<<16)
 	}
 
 	newState := &hashRingState{
-		numVirtualNodes:   uint16(numVirtualNodes),
+		virtualNodeCount:  uint16(virtualNodeCount),
 		replicationFactor: uint8(replicationFactor),
 		virtualNodes:      make([]*VirtualNode, 0),
 		replicaOwners:     make(map[*VirtualNode][]Node),

@@ -34,12 +34,12 @@ import (
 
 // TODO: Documentation
 type hashRingState struct {
-	// numVirtualNodes is the number of virtual nodes that each of the
+	// virtualNodeCount is the number of virtual nodes that each of the
 	// distinct nodes in the ring has.
 	//
 	// It is set during ring's initialization and should not be modified
 	// later.
-	numVirtualNodes uint16
+	virtualNodeCount uint16
 
 	// replicationFactor is the number of distinct nodes in the ring that
 	// own each of the keys.
@@ -78,7 +78,7 @@ func (s *hashRingState) derive() *hashRingState {
 
 	return &hashRingState{
 		replicationFactor: s.replicationFactor,
-		numVirtualNodes:   s.numVirtualNodes,
+		virtualNodeCount:  s.virtualNodeCount,
 		virtualNodes:      newVNs,
 		replicaOwners:     newROs,
 	}
@@ -86,14 +86,14 @@ func (s *hashRingState) derive() *hashRingState {
 
 // TODO: Documentation
 func (s *hashRingState) size() int {
-	return len(s.virtualNodes) / int(s.numVirtualNodes)
+	return len(s.virtualNodes) / int(s.virtualNodeCount)
 }
 
 // TODO: Documentation
 func (s *hashRingState) add(nodes ...Node) ([]*VirtualNode, error) {
 	// Add all virtual nodes (for all distinct nodes) in ring's vnodes
 	// slice, while gathering all new vnodes in a slice.
-	newVnodes := make([]*VirtualNode, len(nodes)*int(s.numVirtualNodes))
+	newVnodes := make([]*VirtualNode, len(nodes)*int(s.virtualNodeCount))
 	for i, node := range nodes {
 		vns, err := s.addNode(node)
 		if err != nil {
@@ -118,8 +118,8 @@ func (s *hashRingState) add(nodes ...Node) ([]*VirtualNode, error) {
 
 // TODO: Documentation
 func (s *hashRingState) addNode(node Node) ([]*VirtualNode, error) {
-	newVnodes := make([]*VirtualNode, s.numVirtualNodes)
-	for vnid := uint16(0); vnid < s.numVirtualNodes; vnid++ {
+	newVnodes := make([]*VirtualNode, s.virtualNodeCount)
+	for vnid := uint16(0); vnid < s.virtualNodeCount; vnid++ {
 		newVnodes[vnid] = s.addVirtualNode(node, vnid)
 	}
 
@@ -158,7 +158,7 @@ func (s *hashRingState) addVirtualNode(node Node, vnid uint16) *VirtualNode {
 func (s *hashRingState) remove(nodes ...Node) ([]*VirtualNode, error) {
 	// Remove all virtual nodes (of all distinct nodes) from state's vnodes
 	// slice, isolating them in a new slice.
-	removedVnodes := make([]*VirtualNode, s.numVirtualNodes)
+	removedVnodes := make([]*VirtualNode, s.virtualNodeCount)
 	for i, node := range nodes {
 		vns, err := s.removeNode(node)
 		if err != nil {
@@ -183,8 +183,8 @@ func (s *hashRingState) remove(nodes ...Node) ([]*VirtualNode, error) {
 
 // TODO: Documentation
 func (s *hashRingState) removeNode(node Node) ([]*VirtualNode, error) {
-	removedIndices := make([]int, s.numVirtualNodes)
-	for vnid := uint16(0); vnid < s.numVirtualNodes; vnid++ {
+	removedIndices := make([]int, s.virtualNodeCount)
+	for vnid := uint16(0); vnid < s.virtualNodeCount; vnid++ {
 		if removedIndex, err := s.removeVirtualNode(node, vnid); err != nil {
 			return nil, err
 		} else {
@@ -193,8 +193,8 @@ func (s *hashRingState) removeNode(node Node) ([]*VirtualNode, error) {
 	}
 	sort.Ints(removedIndices)
 
-	removedVnodes := make([]*VirtualNode, s.numVirtualNodes)
-	newRingVirtualNodes := make([]*VirtualNode, len(s.virtualNodes)-int(s.numVirtualNodes))
+	removedVnodes := make([]*VirtualNode, s.virtualNodeCount)
+	newRingVirtualNodes := make([]*VirtualNode, len(s.virtualNodes)-int(s.virtualNodeCount))
 	rii, nvni, ovni := 0, 0, 0
 	for ; nvni < len(newRingVirtualNodes) && rii < len(removedIndices); ovni++ {
 		if ovni == removedIndices[rii] {
