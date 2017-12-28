@@ -89,7 +89,13 @@ func (s *hashRingState) size() int {
 	return len(s.virtualNodes) / int(s.virtualNodeCount)
 }
 
-// TODO: Documentation
+// add is a variadic method to add an arbitrary number of nodes in the
+// hashRingState (including all nodes' virtual nodes, of course).
+//
+// In the case that an already existing distinct node is attempted to be
+// re-inserted, add returns a non-nil error value and the state is left
+// untouched. Otherwise, the state is modified as expected, and a slice
+// (unsorted) of pointers to the new virtual nodes is returned.
 func (s *hashRingState) add(nodes ...Node) ([]*VirtualNode, error) {
 	// Add all virtual nodes (for all distinct nodes) in ring's vnodes
 	// slice, while gathering all new vnodes in a slice.
@@ -112,11 +118,22 @@ func (s *hashRingState) add(nodes ...Node) ([]*VirtualNode, error) {
 	})
 	s.fixReplicaOwners()
 
-	// Return the slice of new vnodes, sorted. // FIXME: unsorted actually: sorted per node; nodes appended.
+	// Return the slice of new vnodes, unsorted.
 	return newVnodes, nil
 }
 
-// TODO: Documentation
+// addNode inserts all virtual nodes of a distinct ring node `node` in the
+// state's slice of virtual nodes, and returns a sorted slice of them, or an
+// error if the node seems to be already in.
+//
+// To decide whether the node is already in the ring or not, it is checked
+// whether one of the new virtual nodes (vnid 0, hence random order) is already
+// in or not, before appending all of them to the state's slice of virtual
+// nodes.
+//
+// In the extremely unlikely case of a conflict, addNode has low chances of
+// uncovering it, especially as virtualNodeCount or the size of the ring get
+// bigger.
 func (s *hashRingState) addNode(node Node) ([]*VirtualNode, error) {
 	newVnodes := make([]*VirtualNode, s.virtualNodeCount)
 	for vnid := uint16(0); vnid < s.virtualNodeCount; vnid++ {
@@ -141,7 +158,8 @@ func (s *hashRingState) addNode(node Node) ([]*VirtualNode, error) {
 	return newVnodes, nil
 }
 
-// TODO: Documentation
+// addVirtualNode returns a ready *VirtualNode for node's virtual node with the
+// given vnid.
 func (s *hashRingState) addVirtualNode(node Node, vnid uint16) *VirtualNode {
 	// Create a new virtual node for Node `node` and append it to the slice
 	// of new vnodes.
@@ -154,11 +172,17 @@ func (s *hashRingState) addVirtualNode(node Node, vnid uint16) *VirtualNode {
 	return newVnode
 }
 
-// TODO: Documentation
+// remove is a variadic method to remove an arbitrary number of nodes from the
+// hashRingState (including all nodes' virtual nodes, of course).
+//
+// If any of the nodes' virtual nodes cannot be found in the ring, a non-nil
+// error value is returned and the state is left untouched. Otherwise the state
+// is modified as expected, and a slice (unsorted) of pointers to the removed
+// virtual nodes is returned.
 func (s *hashRingState) remove(nodes ...Node) ([]*VirtualNode, error) {
 	// Remove all virtual nodes (of all distinct nodes) from state's vnodes
 	// slice, isolating them in a new slice.
-	removedVnodes := make([]*VirtualNode, s.virtualNodeCount)
+	removedVnodes := make([]*VirtualNode, len(nodes)*int(s.virtualNodeCount))
 	for i, node := range nodes {
 		vns, err := s.removeNode(node)
 		if err != nil {
@@ -182,6 +206,16 @@ func (s *hashRingState) remove(nodes ...Node) ([]*VirtualNode, error) {
 }
 
 // TODO: Documentation
+//
+// removeNode removes all virtual nodes of the given distinct ring node from
+// the state, and returns a sorted slice of them.
+//
+// First, it figures out what are the indices of the virtual nodes that should
+// be removed (by calling the removeVirtualNode method for each one of them).
+// Then, it builds a new slice of virtual nodes for the state, excluding the
+// aforementioned indices.
+//
+// Complexity: O( (V*N)*log(V*N) )
 func (s *hashRingState) removeNode(node Node) ([]*VirtualNode, error) {
 	removedIndices := make([]int, s.virtualNodeCount)
 	for vnid := uint16(0); vnid < s.virtualNodeCount; vnid++ {
@@ -219,7 +253,9 @@ func (s *hashRingState) removeNode(node Node) ([]*VirtualNode, error) {
 	return removedVnodes, nil
 }
 
-// TODO: Documentation
+// removeVirtualNode returns the index of state's slice of virtual nodes which
+// refers to the virtual node that is specified by the given node and vnid, or
+// an error if the virtual node does not exist.
 func (s *hashRingState) removeVirtualNode(node Node, vnid uint16) (int, error) {
 	digest := blake2b.Sum256([]byte(fmt.Sprintf("%s-%d", node, vnid)))
 	i := sort.Search(len(s.virtualNodes), func(j int) bool {

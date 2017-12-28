@@ -125,9 +125,9 @@ func (r *HashRing) String() string {
 // (including all nodes' virtual nodes, of course).
 //
 // In the case that an already existing distinct node is attempted to be
-// re-inserted to the ring, it returns an error and the ring is left untouched;
-// otherwise the ring is modified as expected, and a slice (unsorted) of
-// pointers to the new virtual nodes is returned.
+// re-inserted to the ring, Add returns a non-nil error value and the ring is
+// left untouched. Otherwise, the ring is modified as expected, and a slice
+// (unsorted) of pointers to the new virtual nodes is returned.
 func (r *HashRing) Add(nodes ...Node) ([]*VirtualNode, error) {
 	oldState := r.state.Load().(*hashRingState)
 	newState := oldState.derive()
@@ -145,7 +145,7 @@ func (r *HashRing) Add(nodes ...Node) ([]*VirtualNode, error) {
 // Remove is a variadic method to remove an arbitrary number of nodes from the
 // ring (including all nodes' virtual nodes, of course).
 //
-// If any of the node's virtual nodes cannot be found in the ring, a non-nil
+// If any of the nodes' virtual nodes cannot be found in the ring, a non-nil
 // error value is returned and the ring is left untouched; otherwise the ring
 // is modified as expected, and a slice (unsorted) of pointers to the removed
 // virtual nodes is returned.
