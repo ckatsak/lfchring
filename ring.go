@@ -22,6 +22,13 @@
 // OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+// Package lfhashring provides an efficient lock-free consistent hashing ring
+// data structure, designed for frequent reading by multiple readers and less
+// frequent updates by a single writer.
+//
+// It features efficient handling of a static number of virtual ring nodes per
+// distinct ring node, as well as auto-managed data replication information
+// (using a static replication factor), and an easy-to-use interface.
 package lfhashring
 
 import (
@@ -30,8 +37,6 @@ import (
 	"io"
 	"io/ioutil"
 	"sync/atomic"
-
-	"golang.org/x/crypto/blake2b"
 )
 
 // Node represents a single distinct node in the ring.
@@ -51,9 +56,10 @@ func (vn *VirtualNode) String() string {
 }
 
 // HashRing is a lock-free consistent hashing ring entity, designed for
-// multiple frequent readers and infrequent updates from a single writer. It
-// also supports virtual ring nodes and performs replication-related
-// bookkeeping.
+// frequent reads by multiple readers and infrequent updates by one single
+// writer. In addition, it features efficient support of virtual ring nodes per
+// distinct node, as well as "auto-managed" data replication among the distinct
+// nodes.
 type HashRing struct {
 	// state is an atomic.Value meant to hold values of type
 	// *hashRingState. Its use is what makes this implementation of the
@@ -61,6 +67,10 @@ type HashRing struct {
 	// however that this only works for a single writer. For multiple
 	// writers, an additional mutex among them would be needed.
 	state atomic.Value
+
+	// hash is the hash function used for all supported consistent hashing
+	// ring functionality and operations.
+	hash func([]byte) []byte
 }
 
 // NewHashRing returns a new HashRing, properly initialized based on the given
@@ -69,7 +79,10 @@ type HashRing struct {
 // An arbitrary number of nodes may optionally be added to the new ring during
 // initialization through parameter `nodes` (hence, NewHashRing is a variadic
 // function).
-func NewHashRing(replicationFactor, virtualNodeCount int, nodes ...Node) (*HashRing, error) {
+func NewHashRing(hashFunc func([]byte) []byte, replicationFactor, virtualNodeCount int, nodes ...Node) (*HashRing, error) {
+	if hashFunc == nil {
+		return nil, fmt.Errorf("hashFunc cannot be nil")
+	}
 	if replicationFactor < 1 || replicationFactor > (1<<8)-1 {
 		return nil, fmt.Errorf("replicationFactor value %d not in (0, %d)", replicationFactor, 1<<8)
 	}
@@ -78,6 +91,7 @@ func NewHashRing(replicationFactor, virtualNodeCount int, nodes ...Node) (*HashR
 	}
 
 	newState := &hashRingState{
+		hash:              hashFunc,
 		virtualNodeCount:  uint16(virtualNodeCount),
 		replicationFactor: uint8(replicationFactor),
 		virtualNodes:      make([]*VirtualNode, 0),
@@ -87,13 +101,14 @@ func NewHashRing(replicationFactor, virtualNodeCount int, nodes ...Node) (*HashR
 		newState.add(nodes...)
 	}
 
-	ring := &HashRing{}
+	ring := &HashRing{hash: hashFunc}
 	ring.state.Store(newState)
 
 	return ring, nil
 }
 
-// Clone returns a new ring which is a deep copy of the original one.
+// Clone allocates, initializes and returns a new ring, which is a deep copy of
+// the original.
 func (r *HashRing) Clone() *HashRing {
 	newState := r.state.Load().(*hashRingState).derive()
 	newState.fixReplicaOwners()
@@ -174,18 +189,17 @@ func (r *HashRing) NodesForKey(key []byte) []Node {
 
 // NodesForObject returns a slice of Nodes (of length equal to the configured
 // replication factor) that are currently responsible for holding the object
-// that can be read from the given io.Reader (blake2b hashing is applied
-// first). It returns a non-nil error value in the case of a failure while
-// reading from the io.Reader.
+// that can be read from the given io.Reader (hashing is applied first). It
+// returns a non-nil error value in the case of a failure while reading from
+// the io.Reader.
 //
-// Complexity: O( Read ) + O( blake2b ) + O( log(V*N) )
+// Complexity: O( Read ) + O( hash ) + O( log(V*N) )
 func (r *HashRing) NodesForObject(reader io.Reader) ([]Node, error) {
 	objectBytes, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}
-	key := blake2b.Sum256(objectBytes)
-	return r.NodesForKey(key[:]), nil
+	return r.NodesForKey(r.hash(objectBytes)), nil
 }
 
 // VirtualNodeForKey returns the virtual node in the ring that the given key

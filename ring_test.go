@@ -26,6 +26,7 @@ package lfhashring
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -39,6 +40,20 @@ import (
 	"time"
 
 	"golang.org/x/crypto/blake2b"
+)
+
+var (
+	blake2bHash = func(in []byte) []byte {
+		out := blake2b.Sum256(in)
+		return out[:]
+	}
+
+	sha256Hash = func(in []byte) []byte {
+		out := sha256.Sum256(in)
+		return out[:]
+	}
+
+	r *HashRing
 )
 
 func checkVirtualNodes(t *testing.T, r *HashRing) {
@@ -78,20 +93,25 @@ func checkVirtualNodes(t *testing.T, r *HashRing) {
 }
 
 func TestNewRingBadValues(t *testing.T) {
-	if _, err := NewHashRing(1<<8, 1<<16); err != nil {
-		t.Logf("NewHashRing(1<<8, 1<<16): %v\n", err)
+	if _, err := NewHashRing(nil, 5, 5); err != nil {
+		t.Logf("NewHashRing(nil, 5, 5): %v\n", err)
 	} else {
 		t.Errorf("Expected error from NewHashRing()\n")
 	}
-	if _, err := NewHashRing(1<<8-1, 1<<16); err != nil {
-		t.Logf("NewHashRing(1<<8-1, 1<<16): %v\n", err)
+	if _, err := NewHashRing(blake2bHash, 1<<8, 1<<16); err != nil {
+		t.Logf("NewHashRing(blake2bHash, 1<<8, 1<<16): %v\n", err)
+	} else {
+		t.Errorf("Expected error from NewHashRing()\n")
+	}
+	if _, err := NewHashRing(blake2bHash, 1<<8-1, 1<<16); err != nil {
+		t.Logf("NewHashRing(blake2bHash, 1<<8-1, 1<<16): %v\n", err)
 	} else {
 		t.Errorf("Expected error from NewHashRing()\n")
 	}
 }
 
 func TestNewEmptyRing(t *testing.T) {
-	r, err := NewHashRing(3, 4)
+	r, err := NewHashRing(blake2bHash, 3, 4)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -102,7 +122,7 @@ func TestNewEmptyRing(t *testing.T) {
 }
 
 func TestNewRingReplicationFactorLessThanVirtualNodeCount(t *testing.T) {
-	r, err := NewHashRing(3, 2, "node-0", "node-1")
+	r, err := NewHashRing(blake2bHash, 3, 2, "node-0", "node-1")
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -116,7 +136,7 @@ func testNewRing(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -143,7 +163,7 @@ func TestStringGiganticRing(t *testing.T) {
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -158,7 +178,7 @@ func testClone(t *testing.T, replicationFactor, virtualNodeCount, numNodes int) 
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	oldRing, err := NewHashRing(replicationFactor, virtualNodeCount, nodes...)
+	oldRing, err := NewHashRing(blake2bHash, replicationFactor, virtualNodeCount, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -221,7 +241,7 @@ func TestCloneGiganticRing(t *testing.T) { testClone(t, 3, 256, 1024) }
 //maps are not deeply equal because of the XXX below. See godoc for more
 //information.
 func TestCloneDeepEqual(t *testing.T) {
-	r, err := NewHashRing(2, 4, "node-0", "node-1")
+	r, err := NewHashRing(blake2bHash, 2, 4, "node-0", "node-1")
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -294,7 +314,7 @@ func TestCloneDeepEqual(t *testing.T) {
 */
 
 func TestAddExistingNode(t *testing.T) {
-	r, err := NewHashRing(2, 4, "node-0", "node-1")
+	r, err := NewHashRing(blake2bHash, 2, 4, "node-0", "node-1")
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -313,7 +333,7 @@ func testAdd(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -340,7 +360,7 @@ func testParallelRW(t *testing.T, replicationFactor, numVnodes, numNodes, concur
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -390,7 +410,7 @@ func testParallelAdd(t *testing.T, replicationFactor, numVnodes, numNodes, concu
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -438,7 +458,7 @@ func testParallelAdd(t *testing.T, replicationFactor, numVnodes, numNodes, concu
 //func TestParallelAddMedium2Ring(t *testing.T) { testParallelAdd(t, 3, 128, 2, 10) }
 
 func TestRemoveNontExistentNode(t *testing.T) {
-	r, err := NewHashRing(2, 8, "node-0", "node-1", "node-2")
+	r, err := NewHashRing(blake2bHash, 2, 8, "node-0", "node-1", "node-2")
 	if err != nil {
 		t.Errorf("NewHashRing(): %v", err)
 		t.FailNow()
@@ -457,7 +477,7 @@ func testRemoveFromRing(t *testing.T, replicationFactor, virtualNodeCount, numNo
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, virtualNodeCount, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, virtualNodeCount, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -500,7 +520,7 @@ func TestNodesForKeyTinyRing(t *testing.T) {
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -530,7 +550,7 @@ func TestNodesForObjectBadReader(t *testing.T) {
 	_ = pw.CloseWithError(fmt.Errorf("test"))
 	defer pr.Close()
 
-	r, err := NewHashRing(3, 3)
+	r, err := NewHashRing(blake2bHash, 3, 3)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -552,7 +572,7 @@ func TestNodesForObjectTinyRing(t *testing.T) {
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -580,7 +600,7 @@ func TestNodesForObjectTinyRing(t *testing.T) {
 }
 
 func TestIterStop(t *testing.T) {
-	r, err := NewHashRing(2, 4, "node-0", "node-1")
+	r, err := NewHashRing(blake2bHash, 2, 4, "node-0", "node-1")
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -599,7 +619,7 @@ func testIter(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -629,7 +649,7 @@ func testParallelIter(t *testing.T, replicationFactor, numVnodes, numNodes, conc
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -665,7 +685,7 @@ func TestParallelIterTinyRing(t *testing.T) { testParallelIter(t, 3, 4, 4, 10) }
 func TestParallelIterBigRing(t *testing.T)  { testParallelIter(t, 2, 128, 128, 15) }
 
 func TestIterReversedStop(t *testing.T) {
-	r, err := NewHashRing(2, 4, "node-0", "node-1")
+	r, err := NewHashRing(blake2bHash, 2, 4, "node-0", "node-1")
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -683,7 +703,7 @@ func testParallelIterReversed(t *testing.T, replicationFactor, numVnodes, numNod
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -726,7 +746,7 @@ func testVirtualNodeForKey(t *testing.T, replicationFactor, numVnodes, numNodes 
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -754,7 +774,7 @@ func TestVirtualNodeForKeyHugeRing(t *testing.T)     { testVirtualNodeForKey(t, 
 func TestVirtualNodeForKeyGiganticRing(t *testing.T) { testVirtualNodeForKey(t, 2, 512, 1024) }
 
 func TestPredSuccEmptyRing(t *testing.T) {
-	r, err := NewHashRing(2, 2)
+	r, err := NewHashRing(blake2bHash, 2, 2)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -773,7 +793,7 @@ func TestPredSuccEmptyRing(t *testing.T) {
 }
 
 func TestPredSuccNodeEmptyRing(t *testing.T) {
-	r, err := NewHashRing(2, 2)
+	r, err := NewHashRing(blake2bHash, 2, 2)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -792,7 +812,7 @@ func TestPredSuccNodeEmptyRing(t *testing.T) {
 }
 
 func TestPredSuccNodeSingleNodeRing(t *testing.T) {
-	r, err := NewHashRing(2, 2, "node-42")
+	r, err := NewHashRing(blake2bHash, 2, 2, "node-42")
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -815,7 +835,7 @@ func testPredecessor(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -851,7 +871,7 @@ func testSuccessor(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -888,7 +908,7 @@ func testPredecessorNode(t *testing.T, replicationFactor, numVnodes, numNodes in
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -938,7 +958,7 @@ func TestPredecessorNodeHugeRing(t *testing.T)     { testPredecessorNode(t, 3, 2
 func TestPredecessorNodeGiganticRing(t *testing.T) { testPredecessorNode(t, 3, 512, 1024) }
 
 func TestPredecessorNodeNonVnode(t *testing.T) {
-	r, err := NewHashRing(2, 4, "node-0", "node-1", "node-2")
+	r, err := NewHashRing(blake2bHash, 2, 4, "node-0", "node-1", "node-2")
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -961,7 +981,7 @@ func testSuccessorNode(t *testing.T, replicationFactor, numVnodes, numNodes int)
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -1014,7 +1034,7 @@ func testHasVirtualNode(t *testing.T, replicationFactor, numVnodes, numNodes int
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -1055,30 +1075,33 @@ func TestHasVirtualNodeGiganticRing(t *testing.T) { testHasVirtualNode(t, 2, 512
  *	$ go test -v -bench=. -benchtime=9s -benchmem -run=matchnothingregex
  */
 
-func benchmarkNewHashRing(b *testing.B, replicationFactor, numVnodes, numNodes int) *HashRing {
+func benchmarkNewHashRing(b *testing.B, hash func([]byte) []byte, replicationFactor, numVnodes, numNodes int) {
 	nodes := make([]Node, numNodes)
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	var r *HashRing
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		r, _ = NewHashRing(replicationFactor, numVnodes, nodes...)
+		r, _ = NewHashRing(hash, replicationFactor, numVnodes, nodes...)
 	}
-	return r
 }
-func BenchmarkNewMedium1Ring(b *testing.B)  { _ = benchmarkNewHashRing(b, 3, 64, 32) }
-func BenchmarkNewMedium2Ring(b *testing.B)  { _ = benchmarkNewHashRing(b, 3, 128, 8) }
-func BenchmarkNewBigRing(b *testing.B)      { _ = benchmarkNewHashRing(b, 3, 128, 128) }
-func BenchmarkNewHugeRing(b *testing.B)     { _ = benchmarkNewHashRing(b, 3, 256, 512) }
-func BenchmarkNewGiganticRing(b *testing.B) { _ = benchmarkNewHashRing(b, 3, 512, 1024) }
+func BenchmarkNewMedium1RingBlake2b(b *testing.B)  { benchmarkNewHashRing(b, blake2bHash, 3, 64, 32) }
+func BenchmarkNewMedium1RingSha256(b *testing.B)   { benchmarkNewHashRing(b, sha256Hash, 3, 64, 32) }
+func BenchmarkNewMedium2RingBlake2b(b *testing.B)  { benchmarkNewHashRing(b, blake2bHash, 3, 128, 8) }
+func BenchmarkNewMedium2RingSha256(b *testing.B)   { benchmarkNewHashRing(b, sha256Hash, 3, 128, 8) }
+func BenchmarkNewBigRingBlake2b(b *testing.B)      { benchmarkNewHashRing(b, blake2bHash, 3, 128, 128) }
+func BenchmarkNewBigRingSha256(b *testing.B)       { benchmarkNewHashRing(b, sha256Hash, 3, 128, 128) }
+func BenchmarkNewHugeRingBlake2b(b *testing.B)     { benchmarkNewHashRing(b, blake2bHash, 3, 256, 512) }
+func BenchmarkNewHugeRingSha256(b *testing.B)      { benchmarkNewHashRing(b, sha256Hash, 3, 256, 512) }
+func BenchmarkNewGiganticRingBlake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 512, 1024) }
+func BenchmarkNewGiganticRingSha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 512, 1024) }
 
 func benchmarkString(b *testing.B, replicationFactor, numVnodes, numNodes int) {
 	nodes := make([]Node, numNodes)
 	for i := 0; i < numNodes; i++ {
 		nodes[i] = Node(fmt.Sprintf("node-%d", i))
 	}
-	r, err := NewHashRing(replicationFactor, numVnodes, nodes...)
+	r, err := NewHashRing(blake2bHash, replicationFactor, numVnodes, nodes...)
 	if err != nil {
 		panic(err)
 	}

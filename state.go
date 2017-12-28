@@ -28,12 +28,20 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
-
-	"golang.org/x/crypto/blake2b"
 )
 
-// TODO: Documentation
+// hashRingState represents a state of the HashRing, and this is why it is not
+// exported; it may only be manipulated by the clients via its wrapper type,
+// the HashRing.
+//
+// The hashRingState of a HashRing is meant to be updated by one single writer
+// using a RCU-like technique, and this is what makes this whole implementation
+// of the consistent hashing ring data structure to be lock-free.
 type hashRingState struct {
+	// hash is the hash function used for all supported consistent hashing
+	// ring functionality and operations.
+	hash func([]byte) []byte
+
 	// virtualNodeCount is the number of virtual nodes that each of the
 	// distinct nodes in the ring has.
 	//
@@ -77,6 +85,7 @@ func (s *hashRingState) derive() *hashRingState {
 	newROs := make(map[*VirtualNode][]Node)
 
 	return &hashRingState{
+		hash:              s.hash,
 		replicationFactor: s.replicationFactor,
 		virtualNodeCount:  s.virtualNodeCount,
 		virtualNodes:      newVNs,
@@ -163,7 +172,7 @@ func (s *hashRingState) addNode(node Node) ([]*VirtualNode, error) {
 func (s *hashRingState) addVirtualNode(node Node, vnid uint16) *VirtualNode {
 	// Create a new virtual node for Node `node` and append it to the slice
 	// of new vnodes.
-	newVnodeDigest := blake2b.Sum256([]byte(fmt.Sprintf("%s-%d", node, vnid)))
+	newVnodeDigest := s.hash([]byte(fmt.Sprintf("%s-%d", node, vnid)))
 	newVnode := &VirtualNode{
 		name: newVnodeDigest[:],
 		node: node,
@@ -257,7 +266,7 @@ func (s *hashRingState) removeNode(node Node) ([]*VirtualNode, error) {
 // refers to the virtual node that is specified by the given node and vnid, or
 // an error if the virtual node does not exist.
 func (s *hashRingState) removeVirtualNode(node Node, vnid uint16) (int, error) {
-	digest := blake2b.Sum256([]byte(fmt.Sprintf("%s-%d", node, vnid)))
+	digest := s.hash([]byte(fmt.Sprintf("%s-%d", node, vnid)))
 	i := sort.Search(len(s.virtualNodes), func(j int) bool {
 		if bytes.Compare(s.virtualNodes[j].name, digest[:]) == -1 {
 			return false
