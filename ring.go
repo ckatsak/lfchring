@@ -29,7 +29,7 @@
 // It features efficient handling of a static number of virtual ring nodes per
 // distinct ring node, as well as auto-managed data replication information
 // (using a static replication factor), and an easy-to-use interface.
-package lfhashring
+package lfchring
 
 import (
 	"bytes"
