@@ -115,7 +115,7 @@ func NewHashRing(hashFunc func([]byte) []byte, replicationFactor, virtualNodeCou
 func (r *HashRing) Clone() *HashRing {
 	newState := r.state.Load().(*hashRingState).derive()
 	newState.fixReplicaOwners()
-	newRing := &HashRing{}
+	newRing := &HashRing{hash: newState.hash}
 	newRing.state.Store(newState)
 	return newRing
 }
