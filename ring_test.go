@@ -314,7 +314,7 @@ func TestAddExistingNode(t *testing.T) {
 	if err != nil {
 		t.Logf("Add(): returned error %q, as expected\n", err.Error())
 	} else {
-		t.Errorf("Add(): Expected an error for adding an existing node\n", err)
+		t.Errorf("Add(): Expected an error for adding an existing node\n")
 	}
 }
 
@@ -363,29 +363,38 @@ func testParallelRW(t *testing.T, replicationFactor, numVnodes, numNodes, concur
 	done := make(chan struct{})
 	for goroutine := 0; goroutine < concurrency; goroutine++ {
 		go func(workerID int) {
+			readCnt := 0
 			size := 0
-			select {
-			case <-done:
-				return
-			case <-time.After(20 * time.Millisecond):
-				newSize := r.Size()
-				if newSize < size {
-					t.Errorf("[reader-%d] +%s: newSize < size", workerID, time.Since(start))
+			for {
+				select {
+				case <-done:
+					return
+				case <-time.After(20 * time.Millisecond):
+					newSize := r.Size()
+					readCnt++
+					if newSize < size {
+						t.Errorf("[reader-%d] +%s: newSize < size", workerID, time.Since(start))
+					} else {
+						t.Logf("[reader-%d] +%s: OK after reading %d time(s). (%d->%d)",
+							workerID, time.Since(start), readCnt, size, newSize)
+					}
+					size = newSize
 				}
-				size = newSize
 			}
 		}(goroutine)
 	}
 
 	// writer
-	for i := numNodes; i < numNodes+100; i++ {
+	for i := numNodes; i < numNodes+(numNodes/10); i++ {
 		<-time.After(30 * time.Millisecond)
 		if _, err := r.Add(Node(fmt.Sprintf("node-%d", i))); err != nil {
 			t.Errorf("[writer] +%s: Add(\"node-%d\"): %v\n", time.Since(start), i, err)
 		} else {
 			checkVirtualNodes(t, r)
+			t.Logf("[writer] +%s: OK after adding %d node(s).", time.Since(start), i+1)
 		}
 	}
+	<-time.After(30 * time.Millisecond)
 	close(done)
 }
 func TestParallelRWTinyRing(t *testing.T)    { testParallelRW(t, 3, 4, 4, 10) }

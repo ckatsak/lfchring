@@ -218,11 +218,11 @@ func (s *hashRingState) remove(nodes ...Node) ([]*VirtualNode, error) {
 func (s *hashRingState) removeNode(node Node) ([]*VirtualNode, error) {
 	removedIndices := make([]int, s.virtualNodeCount)
 	for vnid := uint16(0); vnid < s.virtualNodeCount; vnid++ {
-		if removedIndex, err := s.removeVirtualNode(node, vnid); err != nil {
+		removedIndex, err := s.removeVirtualNode(node, vnid)
+		if err != nil {
 			return nil, err
-		} else {
-			removedIndices[vnid] = removedIndex
 		}
+		removedIndices[vnid] = removedIndex
 	}
 	sort.Ints(removedIndices)
 
