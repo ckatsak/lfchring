@@ -48,6 +48,18 @@ func (vn *VirtualNode) String() string {
 	return fmt.Sprintf("%x (%q, %d)", vn.name, vn.node, vn.vnid)
 }
 
+// Name returns the "name" of the virtual node as it appears on the ring (i.e.
+// as a key in the key space that the ring operates on).
+func (vn *VirtualNode) Name() []byte {
+	return vn.name
+}
+
+// Node returns the distinct node that the virtual node represents (or "belongs
+// to").
+func (vn *VirtualNode) Node() Node {
+	return vn.node
+}
+
 // HashRing is a lock-free consistent hashing ring entity, designed for
 // frequent reads by multiple readers and infrequent updates by one single
 // writer. In addition, it features efficient support of virtual ring nodes per
@@ -69,9 +81,9 @@ type HashRing struct {
 // NewHashRing returns a new HashRing, properly initialized based on the given
 // parameters, or a non-nil error value if the parameters are invalid.
 //
-// An arbitrary number of nodes may optionally be added to the new ring during
-// initialization through parameter `nodes` (hence, NewHashRing is a variadic
-// function).
+// An arbitrary number of nodes may optionally be inserted to the new ring
+// during the initialization through parameter `nodes` (hence, NewHashRing is a
+// variadic function).
 func NewHashRing(hashFunc func([]byte) []byte, replicationFactor, virtualNodeCount int, nodes ...Node) (*HashRing, error) {
 	if hashFunc == nil {
 		return nil, fmt.Errorf("hashFunc cannot be nil")
@@ -91,7 +103,7 @@ func NewHashRing(hashFunc func([]byte) []byte, replicationFactor, virtualNodeCou
 		replicaOwners:     make(map[*VirtualNode][]Node),
 	}
 	if len(nodes) > 0 {
-		newState.add(nodes...)
+		newState.insert(nodes...)
 	}
 
 	ring := &HashRing{hash: hashFunc}
@@ -110,7 +122,7 @@ func (r *HashRing) Clone() *HashRing {
 	return newRing
 }
 
-// Size returns the number of *distinct nodes* in the ring, in its current
+// Size returns the number of *distinct* nodes in the ring, in its current
 // state.
 func (r *HashRing) Size() int {
 	return r.state.Load().(*hashRingState).size()
@@ -129,17 +141,17 @@ func (r *HashRing) String() string {
 	return ret.String()
 }
 
-// Add is a variadic method to add an arbitrary number of nodes in the ring
-// (including all nodes' virtual nodes, of course).
+// Insert is a variadic method to insert an arbitrary number of distinct nodes
+// (i.e. all their virtual nodes) to the ring.
 //
 // In the case that an already existing distinct node is attempted to be
-// re-inserted to the ring, Add returns a non-nil error value and the ring is
-// left untouched. Otherwise, the ring is modified as expected, and a slice
-// (unsorted) of pointers to the new virtual nodes is returned.
-func (r *HashRing) Add(nodes ...Node) ([]*VirtualNode, error) {
+// re-inserted to the ring, Insert returns a non-nil error value and the ring
+// is left untouched. Otherwise, the ring is modified as expected, and a slice
+// of the new virtual nodes (not sorted) is returned.
+func (r *HashRing) Insert(nodes ...Node) ([]*VirtualNode, error) {
 	oldState := r.state.Load().(*hashRingState)
 	newState := oldState.derive()
-	newVnodes, err := newState.add(nodes...)
+	newVnodes, err := newState.insert(nodes...)
 	if err != nil {
 		return nil, err
 	}
@@ -150,13 +162,13 @@ func (r *HashRing) Add(nodes ...Node) ([]*VirtualNode, error) {
 	return newVnodes, nil
 }
 
-// Remove is a variadic method to remove an arbitrary number of nodes from the
-// ring (including all nodes' virtual nodes, of course).
+// Remove is a variadic method to remove an arbitrary number of distinct nodes
+// (i.e. all their virtual nodes) from the ring.
 //
-// If any of the nodes' virtual nodes cannot be found in the ring, a non-nil
-// error value is returned and the ring is left untouched; otherwise the ring
-// is modified as expected, and a slice (unsorted) of pointers to the removed
-// virtual nodes is returned.
+// If any of the distinct nodes' virtual nodes cannot be found in the ring, a
+// non-nil error value is returned and the ring is left untouched; otherwise
+// the ring is modified as expected, and a slice of the removed virtual nodes
+// (not sorted) is returned.
 func (r *HashRing) Remove(nodes ...Node) ([]*VirtualNode, error) {
 	oldState := r.state.Load().(*hashRingState)
 	newState := oldState.derive()
@@ -223,20 +235,20 @@ func (r *HashRing) Successor(key []byte) (*VirtualNode, error) {
 
 // PredecessorNode returns the virtual node which is the first predecessor to
 // the one that the given key would be assigned to, but also belongs to a
-// different node than the latter. It returns a non-nil error if the ring
-// either is empty or consists of a single distinct node.
+// different distinct node than the latter. It returns a non-nil error if the
+// ring either is empty or consists of a single distinct node.
 //
-// Complexity: O( log(V*N)+V )
+// Complexity: Worst case O(V*N) but should be O( log(V*N) ) on average.
 func (r *HashRing) PredecessorNode(key []byte) (*VirtualNode, error) {
 	return r.state.Load().(*hashRingState).predecessorNode(key)
 }
 
 // SuccessorNode returns the virtual node which is the first successor to the
 // one that the given key would be assigned to, but also belongs to a different
-// node than the latter. It returns a non-nil error if the ring either is empty
-// or consists of a single distinct node.
+// distinct node than the latter. It returns a non-nil error if the ring either
+// is empty or consists of a single distinct node.
 //
-// Complexity: O( log(V*N)+V )
+// Complexity: Worst case O(V*N) but should be O( log(V*N) ) on average.
 func (r *HashRing) SuccessorNode(key []byte) (*VirtualNode, error) {
 	return r.state.Load().(*hashRingState).successorNode(key)
 }

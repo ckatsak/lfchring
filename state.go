@@ -58,8 +58,6 @@ type hashRingState struct {
 }
 
 // TODO: Documentation
-//
-// derive
 func (s *hashRingState) derive() *hashRingState {
 	// Deep copy the slice of virtual nodes.
 	newVNs := make([]*VirtualNode, len(s.virtualNodes))
@@ -88,19 +86,19 @@ func (s *hashRingState) size() int {
 	return len(s.virtualNodes) / int(s.virtualNodeCount)
 }
 
-// add is a variadic method to add an arbitrary number of nodes in the
+// insert is a variadic method to insert an arbitrary number of nodes in the
 // hashRingState (including all nodes' virtual nodes, of course).
 //
 // In the case that an already existing distinct node is attempted to be
-// re-inserted, add returns a non-nil error value and the state is left
+// re-inserted, insert returns a non-nil error value and the state is left
 // untouched. Otherwise, the state is modified as expected, and a slice
 // (unsorted) of pointers to the new virtual nodes is returned.
-func (s *hashRingState) add(nodes ...Node) ([]*VirtualNode, error) {
+func (s *hashRingState) insert(nodes ...Node) ([]*VirtualNode, error) {
 	// Add all virtual nodes (for all distinct nodes) in ring's vnodes
 	// slice, while gathering all new vnodes in a slice.
 	newVnodes := make([]*VirtualNode, len(nodes)*int(s.virtualNodeCount))
 	for i, node := range nodes {
-		vns, err := s.addNode(node)
+		vns, err := s.insertNode(node)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +119,7 @@ func (s *hashRingState) add(nodes ...Node) ([]*VirtualNode, error) {
 	return newVnodes, nil
 }
 
-// addNode inserts all virtual nodes of a distinct ring node `node` in the
+// insertNode inserts all virtual nodes of a distinct ring node `node` in the
 // state's slice of virtual nodes, and returns a sorted slice of them, or an
 // error if the node seems to be already in.
 //
@@ -130,13 +128,13 @@ func (s *hashRingState) add(nodes ...Node) ([]*VirtualNode, error) {
 // in or not, before appending all of them to the state's slice of virtual
 // nodes.
 //
-// In the extremely unlikely case of a conflict, addNode has low chances of
+// In the extremely unlikely case of a conflict, insertNode has low chances of
 // uncovering it, especially as virtualNodeCount or the size of the ring get
 // bigger.
-func (s *hashRingState) addNode(node Node) ([]*VirtualNode, error) {
+func (s *hashRingState) insertNode(node Node) ([]*VirtualNode, error) {
 	newVnodes := make([]*VirtualNode, s.virtualNodeCount)
 	for vnid := uint16(0); vnid < s.virtualNodeCount; vnid++ {
-		newVnodes[vnid] = s.addVirtualNode(node, vnid)
+		newVnodes[vnid] = s.insertVirtualNode(node, vnid)
 	}
 
 	// Check whether the distinct node is already in the ring, by checking
@@ -157,9 +155,9 @@ func (s *hashRingState) addNode(node Node) ([]*VirtualNode, error) {
 	return newVnodes, nil
 }
 
-// addVirtualNode returns a ready *VirtualNode for node's virtual node with the
+// insertVirtualNode returns a ready *VirtualNode for node's virtual node with the
 // given vnid.
-func (s *hashRingState) addVirtualNode(node Node, vnid uint16) *VirtualNode {
+func (s *hashRingState) insertVirtualNode(node Node, vnid uint16) *VirtualNode {
 	// Create a new virtual node for Node `node` and append it to the slice
 	// of new vnodes.
 	newVnodeDigest := s.hash([]byte(fmt.Sprintf("%s-%d", node, vnid)))

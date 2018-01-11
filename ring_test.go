@@ -52,12 +52,12 @@ func checkVirtualNodes(t *testing.T, r *HashRing) {
 	state := r.state.Load().(*hashRingState)
 	numVNIDs := make(map[Node]int)
 	for i := 0; i < len(state.virtualNodes)-1; i++ {
-		if _, exists := numVNIDs[state.virtualNodes[i].node]; exists {
-			numVNIDs[state.virtualNodes[i].node]++
+		if _, exists := numVNIDs[state.virtualNodes[i].Node()]; exists {
+			numVNIDs[state.virtualNodes[i].Node()]++
 		} else {
-			numVNIDs[state.virtualNodes[i].node] = 1
+			numVNIDs[state.virtualNodes[i].Node()] = 1
 		}
-		if bytes.Compare(state.virtualNodes[i].name, state.virtualNodes[i+1].name) >= 0 {
+		if bytes.Compare(state.virtualNodes[i].Name(), state.virtualNodes[i+1].Name()) >= 0 {
 			t.Errorf("%x == state.virtualNodes[%d] >= state.virtualNodes[%d] == %x\n",
 				state.virtualNodes[i], i, i+1, state.virtualNodes[i+1])
 		}
@@ -310,7 +310,7 @@ func TestAddExistingNode(t *testing.T) {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
 	}
-	_, err = r.Add("node-0")
+	_, err = r.Insert("node-0")
 	if err != nil {
 		t.Logf("Add(): returned error %q, as expected\n", err.Error())
 	} else {
@@ -331,7 +331,7 @@ func testAdd(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	}
 
 	for i := numNodes; i < numNodes+10; i += 2 {
-		_, err := r.Add(Node(fmt.Sprintf("node-%d", i)), Node(fmt.Sprintf("node-%d", i+1)))
+		_, err := r.Insert(Node(fmt.Sprintf("node-%d", i)), Node(fmt.Sprintf("node-%d", i+1)))
 		if err != nil {
 			t.Errorf("Add(): %v\n", err)
 		}
@@ -387,7 +387,7 @@ func testParallelRW(t *testing.T, replicationFactor, numVnodes, numNodes, concur
 	// writer
 	for i := numNodes; i < numNodes+(numNodes/10); i++ {
 		<-time.After(30 * time.Millisecond)
-		if _, err := r.Add(Node(fmt.Sprintf("node-%d", i))); err != nil {
+		if _, err := r.Insert(Node(fmt.Sprintf("node-%d", i))); err != nil {
 			t.Errorf("[writer] +%s: Add(\"node-%d\"): %v\n", time.Since(start), i, err)
 		} else {
 			checkVirtualNodes(t, r)
@@ -432,7 +432,7 @@ func testParallelAdd(t *testing.T, replicationFactor, numVnodes, numNodes, concu
 			for i := range c {
 				n := Node(fmt.Sprintf("node-%d", i))
 				t.Logf("[goroutine-%d] +%s: Adding \"%s\"\n", workerID, time.Since(start), n)
-				_, err := r.Add(n)
+				_, err := r.Insert(n)
 				if err != nil {
 					t.Errorf("[goroutine-%d] +%s: r.Add(): %v\n", workerID, time.Since(start), err)
 				}
