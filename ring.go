@@ -249,18 +249,53 @@ func (r *HashRing) HasVirtualNode(key []byte) bool {
 	return r.state.Load().(*hashRingState).hasVirtualNode(key)
 }
 
-// VirtualNodes allows memory-efficient iteration over all virtual nodes in the
-// ring, by returning a channel for the caller to read the virtual nodes from.
-// The stop channel parameter should be used to avoid memory leaks when
-// quitting the iteration early.
+// VirtualNodes allows iteration over all virtual nodes in the ring, by
+// returning a channel for the caller to read the virtual nodes from.
+//
+// The stop channel parameter, if used with care, may help avoiding memory
+// leaks when quitting the iteration early.
+//
+// BUG: If there is a chance for the returned channel not to be drained (i.e.
+// to quit the iteration early), it is highly recommended to use a
+// VirtualNodesIterator instead, which API, although maybe less comfortable,
+// makes sure there will be no memory leaks (specifically, goroutine leaks) in
+// such cases.
 func (r *HashRing) VirtualNodes(stop <-chan struct{}) <-chan *VirtualNode {
 	return r.state.Load().(*hashRingState).iterVirtualNodes(stop)
 }
 
-// VirtualNodesReversed allows memory-efficient iteration over all virtual
-// nodes in the ring in reverse order, by returning a channel for the caller to
-// read the virtual nodes from. The stop channel parameter should be used to
-// avoid memory leaks when quitting the iteration early.
+// VirtualNodesReversed allows iteration over all virtual nodes in the ring in
+// reverse order, by returning a channel for the caller to read the virtual
+// nodes from.
+//
+// The stop channel parameter, if used with care, may help avoiding memory
+// leaks when quitting the iteration early.
+//
+// BUG: If there is a chance for the returned channel not to be drained (i.e.
+// to quit the iteration early), it is highly recommended to use a
+// VirtualNodesReverseIterator instead, which API, although maybe less
+// comfortable, makes sure there will be no memory leaks (specifically,
+// goroutine leaks) in such cases.
 func (r *HashRing) VirtualNodesReversed(stop <-chan struct{}) <-chan *VirtualNode {
 	return r.state.Load().(*hashRingState).iterReversedVirtualNodes(stop)
+}
+
+// NewVirtualNodesIterator returns a new VirtualNodesIterator for efficiently
+// iterating through ring's virtual nodes in (alphanumerical) order.
+func (r *HashRing) NewVirtualNodesIterator() *VirtualNodesIterator {
+	return &VirtualNodesIterator{
+		ring: r.state.Load().(*hashRingState),
+		curr: 0,
+	}
+}
+
+// NewVirtualNodesReverseIterator returns a new VirtualNodesReverseIterator for
+// efficiently iterating through ring's virtual nodes in reverse
+// (alphanumerical) order.
+func (r *HashRing) NewVirtualNodesReverseIterator() *VirtualNodesReverseIterator {
+	currState := r.state.Load().(*hashRingState)
+	return &VirtualNodesReverseIterator{
+		ring: currState,
+		curr: len(currState.virtualNodes) - 1,
+	}
 }

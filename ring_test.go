@@ -612,6 +612,7 @@ func TestIterStop(t *testing.T) {
 	for i := 0; i < r.Size(); i++ {
 		<-vns
 	}
+	// BUG ^ goroutine-leak
 }
 
 func testIter(t *testing.T, replicationFactor, numVnodes, numNodes int) {
@@ -697,6 +698,7 @@ func TestIterReversedStop(t *testing.T) {
 	for i := 0; i < r.Size(); i++ {
 		<-vns
 	}
+	// BUG ^ goroutine-leak
 }
 func testParallelIterReversed(t *testing.T, replicationFactor, numVnodes, numNodes, concurrency int) {
 	nodes := make([]Node, numNodes)
@@ -740,6 +742,48 @@ func testParallelIterReversed(t *testing.T, replicationFactor, numVnodes, numNod
 }
 func TestParallelIterReversedTinyRing(t *testing.T) { testParallelIterReversed(t, 3, 4, 4, 10) }
 func TestParallelIterReversedBigRing(t *testing.T)  { testParallelIterReversed(t, 2, 128, 128, 15) }
+
+func testIterator(t *testing.T, replicationFactor, numVnodes, numNodes int, reverse bool) {
+	nodes := make([]Node, numNodes)
+	for i := 0; i < numNodes; i++ {
+		nodes[i] = Node(fmt.Sprintf("node-%d", i))
+	}
+	r, err := NewHashRing(hashFunc, replicationFactor, numVnodes, nodes...)
+	if err != nil {
+		t.Errorf("NewHashRing(): %v\n", err)
+		t.FailNow()
+	}
+
+	iterVNList := make([]*VirtualNode, 0, len(r.state.Load().(*hashRingState).virtualNodes))
+	if !reverse {
+		for vnIter := r.NewVirtualNodesIterator(); vnIter.HasNext(); {
+			iterVNList = append(iterVNList, vnIter.Next())
+		}
+	} else {
+		for vnIter := r.NewVirtualNodesReverseIterator(); vnIter.HasNext(); {
+			iterVNList = append(iterVNList, vnIter.Next())
+		}
+	}
+
+	if len(iterVNList) != numVnodes*numNodes {
+		t.Errorf("len(iterVNList) == %d != %d == numVnodes*numNodes\n", len(iterVNList), numVnodes*numNodes)
+		t.FailNow()
+	} else {
+		t.Logf("The number of iterated virtual nodes looks OK.")
+	}
+}
+func TestIteratorTinyRing(t *testing.T)            { testIterator(t, 3, 4, 4, false) }
+func TestReverseIteratorTinyRing(t *testing.T)     { testIterator(t, 3, 4, 4, true) }
+func TestIteratorMedium1Ring(t *testing.T)         { testIterator(t, 2, 64, 32, false) }
+func TestReverseIteratorMedium1Ring(t *testing.T)  { testIterator(t, 2, 64, 32, true) }
+func TestIteratorMedium2Ring(t *testing.T)         { testIterator(t, 2, 128, 2, false) }
+func TestReverseIteratorMedium2Ring(t *testing.T)  { testIterator(t, 2, 128, 2, true) }
+func TestIteratorBigRing(t *testing.T)             { testIterator(t, 2, 128, 128, false) }
+func TestReverseIteratorBigRing(t *testing.T)      { testIterator(t, 2, 128, 128, true) }
+func TestIteratorHugeRing(t *testing.T)            { testIterator(t, 2, 256, 512, false) }
+func TestReverseIteratorHugeRing(t *testing.T)     { testIterator(t, 2, 256, 512, true) }
+func TestIteratorGiganticRing(t *testing.T)        { testIterator(t, 2, 512, 1024, false) }
+func TestReverseIteratorGiganticRing(t *testing.T) { testIterator(t, 2, 512, 1024, true) }
 
 func testVirtualNodeForKey(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	nodes := make([]Node, numNodes)
