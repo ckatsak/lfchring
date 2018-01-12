@@ -300,6 +300,20 @@ func (s *hashRingState) fixReplicaOwners() {
 				k--
 			}
 		}
+		// If cycled above, set slice's length so as to address the useful values only:
+		if j == i {
+			s.replicaOwners[vnode] = s.replicaOwners[vnode][:s.replicationFactor-k]
+			// NOTE: There is a memory leak: the amount of memory that is allocated for the
+			// slice of every key in s.replicaOwners is more than the required amount when
+			// such cycles happen (i.e. when replicationFactor > number of distinct nodes).
+			// To fix this, allocate a temp slice as make([]Node, 1, s.replicationFactor)
+			// and immediately fill it with the distinct Node that the vnode belongs to,
+			// then append any extra Nodes found, and in the end, allocate a new slice of
+			// capacity equal to temp slice's *length*, and copy(newSlice, temp).
+			// This, however, would result in lower performance (more allocations) in my
+			// own average use cases (that replicationFactor <= number of distinct nodes),
+			// so I'm not interested in changing it for now.
+		}
 	}
 }
 

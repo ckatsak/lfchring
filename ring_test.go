@@ -112,8 +112,8 @@ func TestNewEmptyRing(t *testing.T) {
 	}
 }
 
-func TestNewRingReplicationFactorLessThanVirtualNodeCount(t *testing.T) {
-	r, err := NewHashRing(hashFunc, 3, 2, "node-0", "node-1")
+func TestNewRingReplicationFactorLessThanDistinctNodeCount(t *testing.T) {
+	r, err := NewHashRing(hashFunc, 3, 6, "node-0", "node-1")
 	if err != nil {
 		t.Errorf("NewHashRing(): %v\n", err)
 		t.FailNow()
@@ -137,6 +137,7 @@ func testNewRing(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	}
 }
 func TestNewTinyRing(t *testing.T)     { testNewRing(t, 3, 4, 4) }
+func TestNewRfLtDnRing(t *testing.T)   { testNewRing(t, 16, 128, 15) }
 func TestNewMedium1Ring(t *testing.T)  { testNewRing(t, 4, 64, 32) }
 func TestNewMedium2Ring(t *testing.T)  { testNewRing(t, 4, 128, 8) }
 func TestNewBigRing(t *testing.T)      { testNewRing(t, 4, 128, 128) }
@@ -221,6 +222,7 @@ func testClone(t *testing.T, replicationFactor, virtualNodeCount, numNodes int) 
 	t.Log("Virtual nodes OK.")
 }
 func TestCloneTinyRing(t *testing.T)     { testClone(t, 3, 4, 2) }
+func TestCloneRfLtDnRing(t *testing.T)   { testClone(t, 16, 128, 15) }
 func TestCloneMedium1Ring(t *testing.T)  { testClone(t, 3, 64, 32) }
 func TestCloneMedium2Ring(t *testing.T)  { testClone(t, 3, 128, 8) }
 func TestCloneBigRing(t *testing.T)      { testClone(t, 4, 128, 128) }
@@ -339,6 +341,7 @@ func testAdd(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	checkVirtualNodes(t, r)
 }
 func TestAddTinyRing(t *testing.T)     { testAdd(t, 3, 4, 3) }
+func TestAddRfLtDnRing(t *testing.T)   { testAdd(t, 16, 128, 15) }
 func TestAddMedium1Ring(t *testing.T)  { testAdd(t, 3, 64, 32) }
 func TestAddMedium2Ring(t *testing.T)  { testAdd(t, 3, 128, 8) }
 func TestAddBigRing(t *testing.T)      { testAdd(t, 3, 128, 128) }
@@ -398,6 +401,7 @@ func testParallelRW(t *testing.T, replicationFactor, numVnodes, numNodes, concur
 	close(done)
 }
 func TestParallelRWTinyRing(t *testing.T)    { testParallelRW(t, 3, 4, 4, 10) }
+func TestParallelRWRfLtDnRing(t *testing.T)  { testParallelRW(t, 16, 128, 15, 10) }
 func TestParallelRWMedium1Ring(t *testing.T) { testParallelRW(t, 3, 64, 32, 10) }
 func TestParallelRWMedium2Ring(t *testing.T) { testParallelRW(t, 3, 128, 8, 10) }
 func TestParallelRWBigRing(t *testing.T)     { testParallelRW(t, 3, 128, 128, 10) }
@@ -506,6 +510,7 @@ func testRemoveFromRing(t *testing.T, replicationFactor, virtualNodeCount, numNo
 	}
 }
 func TestRemoveFromTinyRing(t *testing.T)    { testRemoveFromRing(t, 3, 2, 4) }
+func TestRemoveRfLtDnRing(t *testing.T)      { testRemoveFromRing(t, 16, 128, 15) }
 func TestRemoveFromMedium1Ring(t *testing.T) { testRemoveFromRing(t, 3, 64, 32) }
 func TestRemoveFromMedium2Ring(t *testing.T) { testRemoveFromRing(t, 3, 128, 8) }
 func TestRemoveFromBigRing(t *testing.T)     { testRemoveFromRing(t, 3, 128, 128) }
@@ -639,6 +644,7 @@ func testIter(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 	}
 }
 func TestIterTinyRing(t *testing.T)     { testIter(t, 3, 4, 4) }
+func TestIterRfLtDnRing(t *testing.T)   { testIter(t, 16, 128, 15) }
 func TestIterMedium1Ring(t *testing.T)  { testIter(t, 2, 64, 32) }
 func TestIterMedium2Ring(t *testing.T)  { testIter(t, 2, 128, 2) }
 func TestIterBigRing(t *testing.T)      { testIter(t, 2, 128, 128) }
@@ -682,8 +688,9 @@ func testParallelIter(t *testing.T, replicationFactor, numVnodes, numNodes, conc
 		<-done
 	}
 }
-func TestParallelIterTinyRing(t *testing.T) { testParallelIter(t, 3, 4, 4, 10) }
-func TestParallelIterBigRing(t *testing.T)  { testParallelIter(t, 2, 128, 128, 15) }
+func TestParallelIterTinyRing(t *testing.T)   { testParallelIter(t, 3, 4, 4, 10) }
+func TestParallelIterRfLtDnRing(t *testing.T) { testParallelIter(t, 16, 128, 15, 10) }
+func TestParallelIterBigRing(t *testing.T)    { testParallelIter(t, 2, 128, 128, 15) }
 
 func TestIterReversedStop(t *testing.T) {
 	r, err := NewHashRing(hashFunc, 2, 4, "node-0", "node-1")
@@ -740,8 +747,9 @@ func testParallelIterReversed(t *testing.T, replicationFactor, numVnodes, numNod
 	}
 	t.Logf("[goroutine-main]: +%s: All good.\n", time.Since(start))
 }
-func TestParallelIterReversedTinyRing(t *testing.T) { testParallelIterReversed(t, 3, 4, 4, 10) }
-func TestParallelIterReversedBigRing(t *testing.T)  { testParallelIterReversed(t, 2, 128, 128, 15) }
+func TestParallelIterReversedTinyRing(t *testing.T)   { testParallelIterReversed(t, 3, 4, 4, 10) }
+func TestParallelIterReversedRfLtDnRing(t *testing.T) { testParallelIterReversed(t, 16, 128, 15, 10) }
+func TestParallelIterReversedBigRing(t *testing.T)    { testParallelIterReversed(t, 2, 128, 128, 15) }
 
 func testIterator(t *testing.T, replicationFactor, numVnodes, numNodes int, reverse bool) {
 	nodes := make([]Node, numNodes)
@@ -774,6 +782,8 @@ func testIterator(t *testing.T, replicationFactor, numVnodes, numNodes int, reve
 }
 func TestIteratorTinyRing(t *testing.T)            { testIterator(t, 3, 4, 4, false) }
 func TestReverseIteratorTinyRing(t *testing.T)     { testIterator(t, 3, 4, 4, true) }
+func TestIteratorRfLtDnRing(t *testing.T)          { testIterator(t, 16, 128, 15, false) }
+func TestReversedIteratorRfLtDnRing(t *testing.T)  { testIterator(t, 16, 128, 15, true) }
 func TestIteratorMedium1Ring(t *testing.T)         { testIterator(t, 2, 64, 32, false) }
 func TestReverseIteratorMedium1Ring(t *testing.T)  { testIterator(t, 2, 64, 32, true) }
 func TestIteratorMedium2Ring(t *testing.T)         { testIterator(t, 2, 128, 2, false) }
@@ -811,6 +821,7 @@ func testVirtualNodeForKey(t *testing.T, replicationFactor, numVnodes, numNodes 
 	}
 }
 func TestVirtualNodeForKeyTinyRing(t *testing.T)     { testVirtualNodeForKey(t, 2, 2, 2) }
+func TestVirtualNodeForKeyRfLtDnRing(t *testing.T)   { testVirtualNodeForKey(t, 16, 128, 15) }
 func TestVirtualNodeForKeyMedium1Ring(t *testing.T)  { testVirtualNodeForKey(t, 2, 64, 32) }
 func TestVirtualNodeForKeyMedium2Ring(t *testing.T)  { testVirtualNodeForKey(t, 2, 128, 8) }
 func TestVirtualNodeForKeyBigRing(t *testing.T)      { testVirtualNodeForKey(t, 2, 128, 128) }
@@ -904,6 +915,7 @@ func testPredecessor(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 		}
 	}
 }
+func TestPredecessorRfLtDnRing(t *testing.T)   { testPredecessor(t, 16, 128, 15) }
 func TestPredecessorMedium1Ring(t *testing.T)  { testPredecessor(t, 3, 64, 32) }
 func TestPredecessorMedium2Ring(t *testing.T)  { testPredecessor(t, 3, 128, 8) }
 func TestPredecessorBigRing(t *testing.T)      { testPredecessor(t, 3, 128, 128) }
@@ -941,7 +953,8 @@ func testSuccessor(t *testing.T, replicationFactor, numVnodes, numNodes int) {
 		}
 	}
 }
-func TestSucccessorMedium1Ring(t *testing.T) { testSuccessor(t, 3, 64, 32) }
+func TestSuccessorRfLtDnRing(t *testing.T)   { testSuccessor(t, 16, 128, 15) }
+func TestSuccessorMedium1Ring(t *testing.T)  { testSuccessor(t, 3, 64, 32) }
 func TestSuccessorMedium2Ring(t *testing.T)  { testSuccessor(t, 3, 128, 8) }
 func TestSuccessorBigRing(t *testing.T)      { testSuccessor(t, 3, 128, 128) }
 func TestSuccessorHugeRing(t *testing.T)     { testSuccessor(t, 3, 256, 512) }
@@ -995,6 +1008,7 @@ func testPredecessorNode(t *testing.T, replicationFactor, numVnodes, numNodes in
 	}
 }
 func TestPredecessorNodeTinyRing(t *testing.T)     { testPredecessorNode(t, 3, 4, 2) }
+func TestPredecessorNodeRfLtDnRing(t *testing.T)   { testPredecessorNode(t, 16, 128, 15) }
 func TestPredecessorNodeMedium1Ring(t *testing.T)  { testPredecessorNode(t, 3, 64, 32) }
 func TestPredecessorNodeMedium2Ring(t *testing.T)  { testPredecessorNode(t, 3, 128, 8) }
 func TestPredecessorNodeBigRing(t *testing.T)      { testPredecessorNode(t, 3, 128, 128) }
@@ -1067,6 +1081,7 @@ func testSuccessorNode(t *testing.T, replicationFactor, numVnodes, numNodes int)
 	}
 }
 func TestSuccessorNodeTinyRing(t *testing.T)     { testSuccessorNode(t, 3, 4, 2) }
+func TestSuccessorNodeRfLtDnRing(t *testing.T)   { testSuccessorNode(t, 16, 128, 15) }
 func TestSuccessorNodeMedium1Ring(t *testing.T)  { testSuccessorNode(t, 3, 64, 32) }
 func TestSuccessorNodeMedium2Ring(t *testing.T)  { testSuccessorNode(t, 3, 128, 8) }
 func TestSucccessorNodeBigRing(t *testing.T)     { testSuccessorNode(t, 3, 128, 128) }
@@ -1106,6 +1121,7 @@ func testHasVirtualNode(t *testing.T, replicationFactor, numVnodes, numNodes int
 		}
 	}
 }
+func TestHasVirtualNodeRfLtDnRing(t *testing.T)   { testHasVirtualNode(t, 16, 128, 15) }
 func TestHasVirtualNodeMedium1Ring(t *testing.T)  { testHasVirtualNode(t, 2, 64, 32) }
 func TestHasVirtualNodeMedium2Ring(t *testing.T)  { testHasVirtualNode(t, 2, 128, 8) }
 func TestHasVirtualNodeBigRing(t *testing.T)      { testHasVirtualNode(t, 2, 128, 128) }
