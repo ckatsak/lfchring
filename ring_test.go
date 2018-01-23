@@ -165,6 +165,40 @@ func TestStringGiganticRing(t *testing.T) {
 	t.Log("Size of ring's representation:", len(garbageStr), "bytes.")
 }
 
+func TestClone(t *testing.T) {
+	r1, err := NewHashRing(hashFunc, 2, 4, Node("a"))
+	if err != nil {
+		t.Errorf("r1: NewHashRing(): %v\n", err)
+		t.FailNow()
+	}
+	t.Logf("r1:\n%#v\n%s\n", r1.state.Load().(*hashRingState).virtualNodes, r1)
+	checkVirtualNodes(t, r1)
+
+	r2 := r1.Clone()
+	if _, err = r2.Insert(Node("b")); err != nil {
+		t.Errorf("r2: Insert(): %v\n", err)
+		t.FailNow()
+	}
+	t.Logf("r2:\n%#v\n%s\n", r2.state.Load().(*hashRingState).virtualNodes, r2)
+	checkVirtualNodes(t, r2)
+	if r1.Size()*2 != r2.Size() {
+		t.Errorf("r1.Size() == %d; r2.Size() == %d\n", r1.Size(), r2.Size())
+		t.FailNow()
+	}
+
+	r3 := r2.Clone()
+	if _, err = r3.Remove(Node("a")); err != nil {
+		t.Errorf("r3: Remove(): %v\n", err)
+		t.FailNow()
+	}
+	t.Logf("r3:\n%#v\n%s\n", r3.state.Load().(*hashRingState).virtualNodes, r3)
+	checkVirtualNodes(t, r3)
+	if r1.Size() != r3.Size() || 2*r3.Size() != r2.Size() {
+		t.Errorf("r1.Size() == %d; r2.Size() == %d; r3.Size() == %d\n", r1.Size(), r2.Size(), r3.Size())
+		t.FailNow()
+	}
+}
+
 func testClone(t *testing.T, replicationFactor, virtualNodeCount, numNodes int) {
 	nodes := make([]Node, numNodes)
 	for i := 0; i < numNodes; i++ {
