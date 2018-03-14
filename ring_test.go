@@ -1180,25 +1180,133 @@ func benchmarkNewHashRing(b *testing.B, hash func([]byte) []byte, replicationFac
 	}
 }
 
-//func BenchmarkNewMedium1RingBlake2b(b *testing.B)  { benchmarkNewHashRing(b, blake2bHash, 3, 64, 32) }
-//func BenchmarkNewMedium1RingSha256(b *testing.B)   { benchmarkNewHashRing(b, sha256Hash, 3, 64, 32) }
-func BenchmarkNewMedium1Ring(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 64, 32) }
+//func BenchmarkNewHashRing_4x256_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 4, 256) }
+//func BenchmarkNewHashRing_4x256_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 4, 256) }
+func BenchmarkNewHashRing_4x256(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 4, 256) }
 
-//func BenchmarkNewMedium2RingSha256(b *testing.B)   { benchmarkNewHashRing(b, blake2bHash, 3, 128, 8) }
-//func BenchmarkNewMedium2RingSha256(b *testing.B)   { benchmarkNewHashRing(b, sha256Hash, 3, 128, 8) }
-func BenchmarkNewMedium2Ring(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 128, 8) }
+//func BenchmarkNewHashRing_4x512_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 4, 512) }
+//func BenchmarkNewHashRing_4x512_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 4, 512) }
+func BenchmarkNewHashRing_4x512(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 4, 512) }
 
-//func BenchmarkNewBigRingSha256(b *testing.B)       { benchmarkNewHashRing(b, blake2bHash, 3, 128, 128) }
-//func BenchmarkNewBigRingSha256(b *testing.B)       { benchmarkNewHashRing(b, sha256Hash, 3, 128, 128) }
-func BenchmarkNewBigRing(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 128, 128) }
+//func BenchmarkNewHashRing_4x1024_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 4, 1024) }
+//func BenchmarkNewHashRing_4x1024_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 4, 1024) }
+func BenchmarkNewHashRing_4x1024(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 4, 1024) }
 
-//func BenchmarkNewHugeRingSha256(b *testing.B)      { benchmarkNewHashRing(b, blake2bHash, 3, 256, 512) }
-//func BenchmarkNewHugeRingSha256(b *testing.B)      { benchmarkNewHashRing(b, sha256Hash, 3, 256, 512) }
-func BenchmarkNewHugeRing(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 256, 512) }
+//func BenchmarkNewHashRing_8x128_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 8, 128) }
+//func BenchmarkNewHashRing_8x128_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 8, 128) }
+func BenchmarkNewHashRing_8x128(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 8, 128) }
 
-//func BenchmarkNewGiganticRingSha256(b *testing.B)  { benchmarkNewHashRing(b, blake2bHash, 3, 512, 1024) }
-//func BenchmarkNewGiganticRingSha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 512, 1024) }
-func BenchmarkNewGiganticRing(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 512, 1024) }
+//func BenchmarkNewHashRing_8x256_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 8, 256) }
+//func BenchmarkNewHashRing_8x256_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 8, 256) }
+func BenchmarkNewHashRing_8x256(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 8, 256) }
+
+//func BenchmarkNewHashRing_8x512_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 8, 512) }
+//func BenchmarkNewHashRing_8x512_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 8, 512) }
+func BenchmarkNewHashRing_8x512(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 8, 512) }
+
+//func BenchmarkNewHashRing_16x64_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 16, 64) }
+//func BenchmarkNewHashRing_16x64_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 16, 64) }
+func BenchmarkNewHashRing_16x64(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 16, 64) }
+
+//func BenchmarkNewHashRing_16x128_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 16, 128) }
+//func BenchmarkNewHashRing_16x128_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 16, 128) }
+func BenchmarkNewHashRing_16x128(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 16, 128) }
+
+//func BenchmarkNewHashRing_16x256_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 16, 256) }
+//func BenchmarkNewHashRing_16x256_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 16, 256) }
+func BenchmarkNewHashRing_16x256(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 16, 256) }
+
+//func BenchmarkNewHashRing_32x32_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 32, 32) }
+//func BenchmarkNewHashRing_32x32_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 32, 32) }
+func BenchmarkNewHashRing_32x32(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 32, 32) }
+
+//func BenchmarkNewHashRing_32x64_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 32, 64) }
+//func BenchmarkNewHashRing_32x64_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 32, 64) }
+func BenchmarkNewHashRing_32x64(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 32, 64) }
+
+//func BenchmarkNewHashRing_32x128_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 32, 128) }
+//func BenchmarkNewHashRing_32x128_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 32, 128) }
+func BenchmarkNewHashRing_32x128(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 32, 128) }
+
+//func BenchmarkNewHashRing_32x256_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 32, 256) }
+//func BenchmarkNewHashRing_32x256_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 32, 256) }
+func BenchmarkNewHashRing_32x256(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 32, 256) }
+
+//func BenchmarkNewHashRing_64x32_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 64, 32) }
+//func BenchmarkNewHashRing_64x32_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 64, 32) }
+func BenchmarkNewHashRing_64x32(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 64, 32) }
+
+//func BenchmarkNewHashRing_64x64_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 64, 64) }
+//func BenchmarkNewHashRing_64x64_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 64, 64) }
+func BenchmarkNewHashRing_64x64(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 64, 64) }
+
+//func BenchmarkNewHashRing_64x128_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 64, 128) }
+//func BenchmarkNewHashRing_64x128_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 64, 128) }
+func BenchmarkNewHashRing_64x128(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 64, 128) }
+
+//func BenchmarkNewHashRing_64x256_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 64, 256) }
+//func BenchmarkNewHashRing_64x256_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 64, 256) }
+func BenchmarkNewHashRing_64x256(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 64, 256) }
+
+//func BenchmarkNewHashRing_128x16_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 128, 16) }
+//func BenchmarkNewHashRing_128x16_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 128, 16) }
+func BenchmarkNewHashRing_128x16(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 128, 16) }
+
+//func BenchmarkNewHashRing_128x32_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 128, 32) }
+//func BenchmarkNewHashRing_128x32_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 128, 32) }
+func BenchmarkNewHashRing_128x32(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 128, 32) }
+
+//func BenchmarkNewHashRing_128x64_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 128, 64) }
+//func BenchmarkNewHashRing_128x64_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 128, 64) }
+func BenchmarkNewHashRing_128x64(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 128, 64) }
+
+//func BenchmarkNewHashRing_128x128_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 128, 128) }
+//func BenchmarkNewHashRing_128x128_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 128, 128) }
+func BenchmarkNewHashRing_128x128(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 128, 128) }
+
+//func BenchmarkNewHashRing_128x256_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 128, 256) }
+//func BenchmarkNewHashRing_128x256_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 128, 256) }
+func BenchmarkNewHashRing_128x256(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 128, 256) }
+
+//func BenchmarkNewHashRing_256x16_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 256, 16) }
+//func BenchmarkNewHashRing_256x16_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 256, 16) }
+func BenchmarkNewHashRing_256x16(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 256, 16) }
+
+//func BenchmarkNewHashRing_256x32_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 256, 32) }
+//func BenchmarkNewHashRing_256x32_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 256, 32) }
+func BenchmarkNewHashRing_256x32(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 256, 32) }
+
+//func BenchmarkNewHashRing_256x64_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 256, 64) }
+//func BenchmarkNewHashRing_256x64_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 256, 64) }
+func BenchmarkNewHashRing_256x64(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 256, 64) }
+
+//func BenchmarkNewHashRing_256x128_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 256, 128) }
+//func BenchmarkNewHashRing_256x128_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 256, 128) }
+func BenchmarkNewHashRing_256x128(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 256, 128) }
+
+//func BenchmarkNewHashRing_256x256_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 256, 256) }
+//func BenchmarkNewHashRing_256x256_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 256, 256) }
+func BenchmarkNewHashRing_256x256(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 256, 256) }
+
+//func BenchmarkNewHashRing_384x64_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 384, 64) }
+//func BenchmarkNewHashRing_384x64_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 384, 64) }
+func BenchmarkNewHashRing_384x64(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 384, 64) }
+
+//func BenchmarkNewHashRing_384x128_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 384, 128) }
+//func BenchmarkNewHashRing_384x128_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 384, 128) }
+func BenchmarkNewHashRing_384x128(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 384, 128) }
+
+//func BenchmarkNewHashRing_384x256_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 384, 256) }
+//func BenchmarkNewHashRing_384x256_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 384, 256) }
+func BenchmarkNewHashRing_384x256(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 384, 256) }
+
+//func BenchmarkNewHashRing_1024x256_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 1024, 256) }
+//func BenchmarkNewHashRing_1024x256_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 1024, 256) }
+func BenchmarkNewHashRing_1024x256(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 1024, 256) }
+
+//func BenchmarkNewHashRing_512x512_blake2b(b *testing.B) { benchmarkNewHashRing(b, blake2bHash, 3, 512, 512) }
+//func BenchmarkNewHashRing_512x512_sha256(b *testing.B)  { benchmarkNewHashRing(b, sha256Hash, 3, 512, 512) }
+func BenchmarkNewHashRing_512x512(b *testing.B) { benchmarkNewHashRing(b, hashFunc, 3, 512, 512) }
 
 func benchmarkString(b *testing.B, replicationFactor, numVnodes, numNodes int) {
 	nodes := make([]Node, numNodes)
@@ -1214,6 +1322,6 @@ func benchmarkString(b *testing.B, replicationFactor, numVnodes, numNodes int) {
 		garbageStr = r.String()
 	}
 }
-func BenchmarkStringMedium1Ring(b *testing.B) { benchmarkString(b, 3, 64, 32) }
-func BenchmarkStringMedium2Ring(b *testing.B) { benchmarkString(b, 3, 128, 8) }
-func BenchmarkStringBigRing(b *testing.B)     { benchmarkString(b, 3, 128, 128) }
+func BenchmarkHashRingToString_64x32(b *testing.B)   { benchmarkString(b, 3, 64, 32) }
+func BenchmarkHashRingToString_128x8(b *testing.B)   { benchmarkString(b, 3, 128, 8) }
+func BenchmarkHashRingToString_128x128(b *testing.B) { benchmarkString(b, 3, 128, 128) }

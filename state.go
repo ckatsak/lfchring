@@ -102,9 +102,7 @@ func (s *hashRingState) insert(nodes ...Node) ([]*VirtualNode, error) {
 		if err != nil {
 			return nil, err
 		}
-		for j := range vns {
-			newVnodes[i*len(vns)+j] = vns[j]
-		}
+		copy(newVnodes[i*len(vns):(i+1)*len(vns)], vns)
 	}
 	// Sort state's vnodes slice.
 	sort.Slice(s.virtualNodes, func(i, j int) bool {
@@ -185,9 +183,7 @@ func (s *hashRingState) remove(nodes ...Node) ([]*VirtualNode, error) {
 		if err != nil {
 			return nil, err
 		}
-		for j := range vns {
-			removedVnodes[i*len(vns)+j] = vns[j]
-		}
+		copy(removedVnodes[i*len(vns):(i+1)*len(vns)], vns)
 	}
 	// Sort state's vnodes slice.
 	sort.Slice(s.virtualNodes, func(i, j int) bool {
