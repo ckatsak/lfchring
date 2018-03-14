@@ -6,13 +6,17 @@
 [![GoCover](http://gocover.io/_badge/github.com/ckatsak/lfchring)](http://gocover.io/github.com/ckatsak/lfchring)
 
 
-Package lfchring provides an efficient lock-free consistent hashing ring
-data structure, designed for frequent reading by multiple readers and less
-frequent updates by a single writer.
+Package lfchring provides a *wait-free* consistent hashing ring immutable
+in-memory data structure, designed for very efficient frequent reading by
+**multiple readers** and less frequent updates by a **single writer**.
 
 It features efficient handling of a static number of virtual ring nodes per
 distinct ring node, as well as auto-managed data replication information
-(using a static replication factor), and an easy-to-use interface.
+(using a static replication factor).
+It also allows users to pass the hash function of their choice, further
+improving its flexibility.
 
-It also offers to the users flexibility to choose their own hash function,
-and there is no dependency other than the standard library.
+The API is simple, easy to use, and is documented in
+[godoc](https://godoc.org/github.com/ckatsak/lfchring).
+
+It has no external dependencies.

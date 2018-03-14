@@ -61,11 +61,11 @@ type hashRingState struct {
 func (s *hashRingState) derive() *hashRingState {
 	// Deep copy the slice of virtual nodes.
 	newVNs := make([]*VirtualNode, len(s.virtualNodes))
-	for i, vnptr := range s.virtualNodes {
+	for i := range s.virtualNodes {
 		newVNs[i] = &VirtualNode{
-			name: vnptr.name,
-			node: vnptr.node,
-			vnid: vnptr.vnid,
+			name: s.virtualNodes[i].name,
+			node: s.virtualNodes[i].node,
+			vnid: s.virtualNodes[i].vnid,
 		}
 	}
 	// Initialize a new map of replica owners, **EMPTY, to be filled by
@@ -97,13 +97,13 @@ func (s *hashRingState) insert(nodes ...Node) ([]*VirtualNode, error) {
 	// Add all virtual nodes (for all distinct nodes) in ring's vnodes
 	// slice, while gathering all new vnodes in a slice.
 	newVnodes := make([]*VirtualNode, len(nodes)*int(s.virtualNodeCount))
-	for i, node := range nodes {
-		vns, err := s.insertNode(node)
+	for i := range nodes {
+		vns, err := s.insertNode(nodes[i])
 		if err != nil {
 			return nil, err
 		}
-		for j, vn := range vns {
-			newVnodes[i*len(vns)+j] = vn
+		for j := range vns {
+			newVnodes[i*len(vns)+j] = vns[j]
 		}
 	}
 	// Sort state's vnodes slice.
@@ -180,13 +180,13 @@ func (s *hashRingState) remove(nodes ...Node) ([]*VirtualNode, error) {
 	// Remove all virtual nodes (of all distinct nodes) from state's vnodes
 	// slice, isolating them in a new slice.
 	removedVnodes := make([]*VirtualNode, len(nodes)*int(s.virtualNodeCount))
-	for i, node := range nodes {
-		vns, err := s.removeNode(node)
+	for i := range nodes {
+		vns, err := s.removeNode(nodes[i])
 		if err != nil {
 			return nil, err
 		}
-		for j, vn := range vns {
-			removedVnodes[i*len(vns)+j] = vn
+		for j := range vns {
+			removedVnodes[i*len(vns)+j] = vns[j]
 		}
 	}
 	// Sort state's vnodes slice.
@@ -462,11 +462,11 @@ func (s *hashRingState) iterVirtualNodes(stop <-chan struct{}) <-chan *VirtualNo
 	retChan := make(chan *VirtualNode)
 	go func() {
 		defer close(retChan)
-		for _, vn := range s.virtualNodes {
+		for i := range s.virtualNodes {
 			select {
 			case <-stop:
 				return
-			case retChan <- vn:
+			case retChan <- s.virtualNodes[i]:
 			}
 		}
 	}()
